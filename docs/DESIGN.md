@@ -48,14 +48,13 @@ BetterSearch 是一个**油猴脚本（userscript）**，增强 Google、Bing、
 ## 4. 架构
 
 ```
-packages/core        引擎适配器、规则引擎、各功能逻辑、同步合并逻辑（不直接调用 GM_* 或 DOM 全局对象以外的平台 API）
-packages/platform-gm 油猴实现：GM_getValue / GM_setValue / GM_xmlhttpRequest
-apps/userscript      vite-plugin-monkey 入口，负责组装各部分
+packages/core        引擎适配器、规则引擎、设置、同步合并逻辑（不调用 GM_* 等平台 API）
+apps/userscript      vite-plugin-monkey 入口：GM_* 平台实现（src/platform.ts）、页面处理、设置面板
 fixtures/            各引擎搜索结果页的 HTML 快照
 docs/                文档
 ```
 
-core 层只通过一层很薄的接口访问平台能力（`Storage`、`Http`），这样单元测试里可以换成假的实现。
+core 层只通过一层很薄的接口访问平台能力（`KeyValueStore`，以后加 `Http`），这样单元测试里可以换成假的实现。`GM_*` 只能从 vite-plugin-monkey 的 `$` 模块导入，所以平台实现放在 `apps/userscript` 里，不单独建包。
 
 ### 4.1 引擎适配器
 
@@ -88,7 +87,9 @@ core 层只通过一层很薄的接口访问平台能力（`Storage`、`Http`）
 - 模块：AI 概览（可能在最上面，也可能夹在结果中间，class 是 `.ULSxyf`）、相关问题、视频、短视频、图片、歌曲、专辑、电影、活动、天气、货币换算器、右侧知识面板 `#rhs`、「用户还搜索了」。
 - **模块标题会随 IP 所在地变语言**（在日本 IP 下有日文标题），**不能根据标题文字判断区块类型**。
 - 拦截重定向：**普通结果的 `href` 是 `/goto?url=CAES…` 这种加密跳转**（2026-11-07 抓取的快照中确认），本地无法直接解码。真实域名要从结果里显示的 URL 文本（`cite`）中读取，处理方式与百度相同（见 6.3）。另外还要去掉 `ping` 属性和 `mousedown` 上报。
-- 每条普通结果外层都有 `[data-rpos]` 容器，当前适配器按 `[data-rpos]` → `.MjjYud` → `[data-hveid]` 的顺序查找。
+- 每条普通结果外层都有 `[data-rpos]` 容器，当前适配器按 `[data-rpos]` → `.MjjYud` → `[data-hveid]` 的顺序查找。但歌曲、专辑、相关问题等模块里面也有 `[data-rpos]`，所以适配器先识别模块，再在模块以外找普通结果。
+- 区块的最外层是 `.ULSxyf` 或 `.MjjYud`（可以互相嵌套）。模块特征：广告是 `#tads`、`#tadsb`、`#bottomads`、`#tvcap`、`[data-text-ad]`（经常存在但内容为空，要跳过）；AI 概览是 `#m-x-content`、`[data-subtree="aimc"]`，在 `#rso` 上方时外层是 `#Odp5De`；相关问题是 `.related-question-pair`、`[data-initq]`；知识类是 `[data-attrid^="kc:"]`；汇率是 `[data-attrid="Converter"]`；视频轮播是包含至少 2 个 `[data-vid]` 的区块；右侧知识面板是 `#rhs`；「用户还搜索了」是 `#bres`。
+- YouTube、Instagram、Reddit 这类结果显示的是站点名而不是网址，链接又是加密跳转，所以**拿不到域名**，暂时不能按域名屏蔽，要等「点击时解析」实现后才能处理。
 - 广告容器是 `#tads` 和 `#bottomads`。调研时用的日本 IP，没有出现广告，**需要在其他地区再验证**。
 
 ### 5.2 Bing（国内版）

@@ -1,11 +1,16 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { googleAdapter } from '../src';
+import { googleAdapter, type Block } from '../src';
 
 function loadFixture(name: string): Document {
   const html = readFileSync(join(import.meta.dirname, '../../../fixtures/google', name), 'utf8');
   return new DOMParser().parseFromString(html, 'text/html');
+}
+
+/** Compact summary: organic results by host, other blocks by type. */
+function summarize(blocks: Block[]): string[] {
+  return blocks.map((b) => (b.type === 'organic' ? `organic:${googleAdapter.extractResult(b)?.host}` : b.type));
 }
 
 describe('googleAdapter.matches', () => {
@@ -23,31 +28,94 @@ describe('googleAdapter.matches', () => {
 });
 
 describe('googleAdapter.collectBlocks', () => {
-  const doc = loadFixture('workbuddy.html');
-  const blocks = googleAdapter.collectBlocks(doc);
-
-  it('finds every organic result once', () => {
-    const titles = blocks.map((b) => b.el.querySelector('h3')?.textContent);
-    expect(titles).toEqual([
-      'WorkBuddy - AI Agent 办公新范式',
-      'WorkBuddy - AI Agent for Everyday Office Work',
-      '简介| WorkBuddy - AI Agent 办公新范式',
-      'WorkBuddy Pricing - AI Agent for Everyday Office Work',
-      'WorkBuddy',
-      '更新日志| WorkBuddy - AI Agent 办公新范式',
+  it('finds organic results, an inline AI overview and bottom ads', () => {
+    expect(summarize(googleAdapter.collectBlocks(loadFixture('workbuddy.html')))).toEqual([
+      'organic:www.workbuddy.cn',
+      'organic:www.workbuddy.ai',
+      'organic:www.workbuddy.ai',
+      'ai-answer',
+      'organic:www.workbuddy.ai',
+      'organic:cloud.tencent.com',
+      'organic:www.workbuddy.ai',
+      'ad',
+      'related',
     ]);
-    expect(blocks.every((b) => b.type === 'organic')).toBe(true);
   });
 
-  it('returns non-nested containers', () => {
-    for (const a of blocks) {
-      for (const b of blocks) {
-        if (a !== b) expect(a.el.contains(b.el)).toBe(false);
+  it('finds the AI overview above #rso and ignores empty ad slots', () => {
+    const types = summarize(googleAdapter.collectBlocks(loadFixture('chrome-download.html')));
+    expect(types[0]).toBe('ai-answer');
+    expect(types).not.toContain('ad');
+    expect(types.filter((t) => t.startsWith('organic'))).toHaveLength(9);
+  });
+
+  it('finds top ads', () => {
+    const types = summarize(googleAdapter.collectBlocks(loadFixture('hotel.html')));
+    expect(types[0]).toBe('ad');
+    expect(types.filter((t) => t.startsWith('organic'))).toHaveLength(10);
+  });
+
+  it('separates knowledge modules, questions and the side panel from results', () => {
+    expect(summarize(googleAdapter.collectBlocks(loadFixture('jay-chou.html')))).toEqual([
+      'unknown',
+      'knowledge',
+      'organic:zh.wikipedia.org',
+      'knowledge',
+      'organic:baike.baidu.com',
+      'organic:null',
+      'knowledge',
+      'organic:open.spotify.com',
+      'paa',
+      'organic:null',
+      'organic:www.sonymusic.co.jp',
+      'organic:music.apple.com',
+      'organic:www.universal-music.co.jp',
+      'organic:null',
+      'organic:wuu.wikipedia.org',
+      'related',
+      'knowledge',
+    ]);
+  });
+
+  it('does not count videos inside a carousel as results', () => {
+    const types = summarize(googleAdapter.collectBlocks(loadFixture('pizza.html')));
+    expect(types.slice(0, 2)).toEqual(['ai-answer', 'video']);
+    expect(types).toContain('paa');
+    expect(types.filter((t) => t.startsWith('organic'))).toHaveLength(7);
+  });
+
+  it('recognises the currency converter', () => {
+    expect(summarize(googleAdapter.collectBlocks(loadFixture('usd-rate.html')))[0]).toBe('widget');
+  });
+
+  it('returns non-nested blocks', () => {
+    for (const name of ['workbuddy.html', 'jay-chou.html', 'pizza.html', 'hotel.html']) {
+      const blocks = googleAdapter.collectBlocks(loadFixture(name));
+      for (const a of blocks) {
+        for (const b of blocks) {
+          if (a !== b) expect(a.el.contains(b.el), name).toBe(false);
+        }
       }
     }
   });
 
   it('returns nothing on a page without results', () => {
     expect(googleAdapter.collectBlocks(new DOMParser().parseFromString('<p>hi</p>', 'text/html'))).toEqual([]);
+  });
+});
+
+describe('googleAdapter.extractResult', () => {
+  it('reads the title, redirect link and displayed host', () => {
+    const [first] = googleAdapter.collectBlocks(loadFixture('workbuddy.html'));
+    expect(googleAdapter.extractResult(first!)).toMatchObject({
+      title: 'WorkBuddy - AI Agent 办公新范式',
+      href: expect.stringMatching(/^\/goto\?url=/),
+      host: 'www.workbuddy.cn',
+    });
+  });
+
+  it('returns null for non-organic blocks', () => {
+    const blocks = googleAdapter.collectBlocks(loadFixture('workbuddy.html'));
+    expect(googleAdapter.extractResult(blocks.find((b) => b.type === 'ad')!)).toBeNull();
   });
 });

@@ -1,3 +1,4 @@
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vite';
 import monkey from 'vite-plugin-monkey';
 
@@ -7,6 +8,9 @@ export default defineConfig({
     minify: false,
   },
   plugins: [
+    // Inject component CSS next to the component, which lands it inside the
+    // settings panel's shadow root instead of the page's <head>.
+    svelte({ compilerOptions: { css: 'injected' } }),
     monkey({
       entry: 'src/main.ts',
       userscript: {

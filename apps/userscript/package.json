@@ -12,6 +12,8 @@
     "@bettersearch/core": "workspace:*"
   },
   "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "svelte": "^5.57.3",
     "vite-plugin-monkey": "^8.1.1"
   }
 }

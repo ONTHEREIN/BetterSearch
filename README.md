@@ -19,8 +19,8 @@ pnpm typecheck
 ## 目录
 
 ```
-packages/core     引擎适配器与功能逻辑
-apps/userscript   油猴脚本入口
+packages/core     引擎适配器、规则引擎与设置
+apps/userscript   油猴脚本入口、页面处理与设置面板（Svelte 5）
 fixtures/         搜索结果页 HTML 快照（已去掉 script 和 style）
 docs/             设计文档
 ```
