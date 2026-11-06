@@ -22,6 +22,11 @@ export default defineConfig({
           'https://www.google.com/search*',
           'https://www.google.com.hk/search*',
           'https://www.google.co.jp/search*',
+          'https://www.bing.com/search*',
+          'https://cn.bing.com/search*',
+          // Baidu's home page turns into a results page without reloading.
+          'https://www.baidu.com/',
+          'https://www.baidu.com/s*',
         ],
         'run-at': 'document-start',
       },

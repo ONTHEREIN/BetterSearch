@@ -27,8 +27,17 @@ export interface ResultInfo {
 
 export interface EngineAdapter {
   id: EngineId;
+  /** True for any page on this engine's search host, results or not. */
+  ownsHost(hostname: string): boolean;
   /** True when `url` is this engine's "all / web" results tab. */
   matches(url: URL): boolean;
+  /**
+   * CSS selectors for ads, injected at document-start so ads never paint.
+   * May use `:has()`. Ads are still classified by `collectBlocks`.
+   */
+  adSelectors: readonly string[];
+  /** The visible search bar, where the settings button goes. */
+  searchBar(root: ParentNode): HTMLElement | null;
   /** All recognised blocks, in document order. */
   collectBlocks(root: ParentNode): Block[];
   /** Details of an organic result; null when the block is not one. */

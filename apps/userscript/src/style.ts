@@ -11,15 +11,13 @@ export const CLASSES = {
 
 const C = CLASSES;
 
-// Ad containers are listed by id as well so they are hidden before the script
-// has classified anything, which avoids a flash of ads on load.
-const CSS = `
-html.${NO_ADS_CLASS} #tads,
-html.${NO_ADS_CLASS} #tadsb,
-html.${NO_ADS_CLASS} #tvcap,
-html.${NO_ADS_CLASS} #bottomads,
-html.${NO_ADS_CLASS} .${C.ad} { display: none !important; }
+// The adapter's ad selectors hide ads before the script has classified
+// anything, which avoids a flash of ads on load. One rule per selector, so a
+// browser without `:has()` drops only the rules that use it.
+const adCss = (adSelectors: readonly string[]) =>
+  [...adSelectors, `.${C.ad}`].map((s) => `html.${NO_ADS_CLASS} ${s} { display: none !important; }\n`).join('');
 
+const CSS = `
 .${C.result} { position: relative; }
 .${C.blocked} { display: none !important; }
 
@@ -55,9 +53,18 @@ html.${NO_ADS_CLASS} .${C.ad} { display: none !important; }
 }
 `;
 
-export function injectStyle(): void {
-  const style = document.createElement('style');
-  style.textContent = CSS;
+let style: HTMLStyleElement | null = null;
+
+/**
+ * Add the stylesheet, or put it back if the page removed it: Baidu rewrites
+ * <head> when it swaps in new results. Safe to call repeatedly.
+ */
+export function injectStyle(adSelectors: readonly string[]): void {
+  if (style?.isConnected) return;
+  if (!style) {
+    style = document.createElement('style');
+    style.textContent = adCss(adSelectors) + CSS;
+  }
   // At document-start <head> may not exist yet; <html> always does.
   (document.head ?? document.documentElement).append(style);
 }

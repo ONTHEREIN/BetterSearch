@@ -1,4 +1,4 @@
-import { compileRules, type EngineAdapter, type RuleSet, type Settings } from '@bettersearch/core';
+import { compileRules, siteOf, type EngineAdapter, type RuleSet, type Settings } from '@bettersearch/core';
 import { CLASSES } from './style';
 
 const BLOCK_ICON =
@@ -31,6 +31,9 @@ export class Page {
   }
 
   apply(): void {
+    // The script also runs on the engine's other pages (home, other tabs),
+    // which can turn into a results page without a reload.
+    if (!this.adapter.matches(new URL(location.href))) return;
     for (const block of this.adapter.collectBlocks(document)) {
       if (block.type === 'ad') {
         block.el.classList.add(CLASSES.ad);
@@ -58,8 +61,8 @@ export class Page {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = CLASSES.blockButton;
-    button.title = `屏蔽 ${host}`;
-    button.setAttribute('aria-label', `屏蔽 ${host}`);
+    button.title = `屏蔽 ${siteOf(host)}`;
+    button.setAttribute('aria-label', `屏蔽 ${siteOf(host)}`);
     button.innerHTML = BLOCK_ICON;
     button.addEventListener('click', (event) => {
       event.preventDefault();

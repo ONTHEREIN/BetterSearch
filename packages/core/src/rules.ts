@@ -1,4 +1,4 @@
-import { stripWww } from './url';
+import { siteOf } from './url';
 
 /**
  * A subset of the uBlacklist rule syntax, one rule per line:
@@ -78,5 +78,5 @@ export function compileRules(text: string): RuleSet {
 
 /** The rule added when the user clicks "block this site". */
 export function siteRule(host: string): string {
-  return `*://*.${stripWww(host)}/*`;
+  return `*://*.${siteOf(host)}/*`;
 }

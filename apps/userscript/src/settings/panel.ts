@@ -38,10 +38,9 @@ export function toggleSettings(options: PanelOptions): void {
   else openSettings(options);
 }
 
-/** Put a gear button right of the engine's search box, if one can be found. */
-export function addGearButton(searchBox: Element | null, options: PanelOptions): void {
-  const form = searchBox?.closest('form');
-  if (!form || form.querySelector('.bs-gear')) return;
+/** Put a gear button right of the engine's search bar, if one can be found. */
+export function addGearButton(bar: HTMLElement | null, options: PanelOptions): void {
+  if (!bar || bar.querySelector('.bs-gear')) return;
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'bs-gear';
@@ -66,6 +65,6 @@ export function addGearButton(searchBox: Element | null, options: PanelOptions):
     justifyContent: 'center',
   });
   button.addEventListener('click', () => toggleSettings(options));
-  if (getComputedStyle(form).position === 'static') form.style.position = 'relative';
-  form.append(button);
+  if (getComputedStyle(bar).position === 'static') bar.style.position = 'relative';
+  bar.append(button);
 }

@@ -74,7 +74,11 @@ core 层只通过一层很薄的接口访问平台能力（`KeyValueStore`，以
 
 ### 4.2 页面变化监听
 
-百度和 Google 在一些情况下，换搜索词时只局部更新页面，不重新加载。所以要监听 URL 变化和结果容器的 DOM 变化，检测到新搜索时重新处理整个页面。
+百度和 Google 在一些情况下，换搜索词时只局部更新页面，不重新加载。所以脚本也会在引擎的非结果页（比如百度首页）上运行，监听 `<body>` 的 DOM 变化，每次处理前先用 `matches(location)` 确认当前是结果页。
+
+处理逻辑直接放在 MutationObserver 的回调里执行，**不要用 `requestAnimationFrame` 节流**：后台标签页里 rAF 会暂停，结果就会一直不被处理。MutationObserver 的回调本身就是批量触发的，而且在页面绘制之前执行。处理逻辑是幂等的，脚本自己造成的 DOM 变化只会再触发一次处理，然后就会停下来。
+
+提前隐藏广告的 CSS 由适配器的 `adSelectors` 提供，**每个选择器单独写一条规则**，这样不支持 `:has()` 的浏览器只会丢掉用到它的那几条，其他规则照常生效。
 
 ## 5. 各引擎调研结论（2026-11）
 
@@ -101,8 +105,10 @@ core 层只通过一层很薄的接口访问平台能力（`KeyValueStore`，以
   - `#b_topw`、`#b_pole`：结果列表上方的大区块
   - `#b_context`：右侧栏
   - `.b_pag`：分页
-- 品牌广告会出现在 `#b_results` 外面（比如搜 workbuddy 时）。**这次的广告检测选择器没有覆盖到 Bing 的广告，需要补充。**
-- 拦截重定向：`bing.com/ck/a?...&u=a1<base64url>` 可以在本地解码。
+- `li.b_ans` 按内部特征细分：`.cht_ans_root` 是 AI 摘要，`.ans_nws` 是资讯，`.b_paa_item` 是相关问题，`#inline_rs`、`.b_rs`、`.richrswrapper` 是相关搜索，`#serpvidans`、`.b_vidAns` 是视频。
+- **`#b_pole` 里带 `.eu_promotedlabel` 的是推广**（比如搜「chrome 下载」时出现的「由 Microsoft 推广」的 Edge 广告），按广告处理；不带的按知识卡片处理。`#b_topw` 是知识卡片。
+- 品牌广告会出现在 `#b_results` 外面（比如搜 workbuddy 时）。2026-11-07 抓取的 6 份快照里都没有出现 `li.b_ad`，所以 `.b_ad`、`.b_adTop`、`.b_adBottom` 这几个选择器**还没有经过实际验证**。
+- 拦截重定向：2026-11-07 的快照中，结果链接**本身就是真实地址**。另外 `bing.com/ck/a?...&u=a1<base64url>` 形式的链接可以在本地解码，遇到时再处理。
 
 ### 5.3 百度
 
@@ -115,7 +121,10 @@ core 层只通过一层很薄的接口访问平台能力（`KeyValueStore`，以
   - 软件下载：`pc-soft-accurate`
 - **广告没有 `tpl` 属性，class 是随机字符串**（比如 `u2a6nht`），要用特征组合来识别：没有 `tpl`、链接指向 `baidu.php`、区块里带有「广告」字样。广告密度很高（搜「iphone 17 价格」时前 7 个区块里有 3 个），而且在「下载」类搜索里，**广告标题经常伪装成下载站**。
 - 没有 `tpl` 的非广告区块：`c-group-wrapper`（人物关系、分步教程）、`search-source-wrap`。
-- 拦截重定向：区块上的 **`mu` 属性就是真实地址**。
+- 拦截重定向：区块上的 **`mu` 属性就是真实地址**。页面上显示的通常是站点名（比如「华军软件园」），而不是域名，所以适配器优先从 `mu` 读取域名。`mu` 是 `nourl.ubs.baidu.com` 的，是百度自家模块的占位地址，要忽略。
+- 广告可以在页面加载前用 CSS 隐藏：`#content_left > div:not([tpl]):has(a[href*="baidu.php?"])`。
+- **新版搜索框是 `textarea#chat-textarea`，不在任何 `<form>` 里**，旧的 `#kw` 表单被隐藏了，所以齿轮按钮挂在 `.chat-input-wrapper` 上。
+- 从首页搜索时，页面不会刷新，而是原地换成结果页，同时会**替换 `<head>` 的内容，把注入的 `<style>` 删掉**。所以脚本也匹配首页，每次处理页面时都会检查样式表还在不在，不在就重新插入。
 - 右侧栏 `#content_right`：相关搜索（`recommend_list_san`）、热搜榜（`right_toplist1`）。
 
 ### 5.4 仿冒站实例
@@ -129,6 +138,7 @@ core 层只通过一层很薄的接口访问平台能力（`KeyValueStore`，以
 - 规则作用于**搜索结果**：标题、摘要或 URL 命中规则时，结果会被**隐藏**或**折叠**成一行「已屏蔽 N 条，点击显示」。
 - **规则语法兼容 uBlacklist**，订阅列表也用同样的格式，在此基础上扩展关键词规则和处理方式（隐藏、折叠、警告）。
 - 日常操作：每条结果上都有「屏蔽此站」按钮，屏蔽后弹出带撤销按钮的提示。只有高级模式才需要手写规则。
+- 「屏蔽此站」屏蔽的是**主域名**（`m.onlinedown.net` 会屏蔽整个 `onlinedown.net`）。脚本内置了一份小的后缀表来代替完整的 PSL：其中 `github.io`、`vercel.app` 这类托管平台按后缀处理，不会因为屏蔽一个子站点而屏蔽整个平台。`baidu.com`、`qq.com`、`google.com` 这类门户网站保留完整子域名，比如屏蔽 `zhidao.baidu.com` 不会影响 `baijiahao.baidu.com`。
 - 订阅列表每 24 小时检查一次更新。来源依次尝试 jsDelivr 和 Gitee 镜像，失败就换下一个。
 
 ### 6.2 防仿冒官网（分级处理）

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addRule, compileRules, hostFromDisplayUrl, removeRule, siteRule } from '../src';
+import { addRule, compileRules, hostFromDisplayUrl, registrableDomain, removeRule, siteOf, siteRule } from '../src';
 
 describe('compileRules', () => {
   const rules = compileRules(
@@ -32,9 +32,33 @@ describe('compileRules', () => {
 });
 
 describe('siteRule', () => {
-  it('drops www and covers subdomains', () => {
-    expect(siteRule('www.example.com')).toBe('*://*.example.com/*');
-    expect(compileRules(siteRule('www.example.com')).blocks('https://cdn.example.com/a')).toBe(true);
+  it('covers the whole site, including sibling subdomains', () => {
+    expect(siteRule('m.onlinedown.net')).toBe('*://*.onlinedown.net/*');
+    expect(compileRules(siteRule('m.onlinedown.net')).blocks('https://mip.onlinedown.net/a')).toBe(true);
+  });
+});
+
+describe('registrableDomain', () => {
+  it.each([
+    ['www.example.com', 'example.com'],
+    ['a.b.example.co.uk', 'example.co.uk'],
+    ['workbuddy-sc.com.cn', 'workbuddy-sc.com.cn'],
+    ['www.workbuddy-sc.com.cn', 'workbuddy-sc.com.cn'],
+    ['alice.github.io', 'alice.github.io'],
+    ['localhost', 'localhost'],
+  ])('%s -> %s', (host, expected) => {
+    expect(registrableDomain(host)).toBe(expected);
+  });
+});
+
+describe('siteOf', () => {
+  it.each([
+    ['m.onlinedown.net', 'onlinedown.net'],
+    ['zhidao.baidu.com', 'zhidao.baidu.com'],
+    ['www.google.com', 'google.com'],
+    ['bob.vercel.app', 'bob.vercel.app'],
+  ])('%s -> %s', (host, expected) => {
+    expect(siteOf(host)).toBe(expected);
   });
 });
 

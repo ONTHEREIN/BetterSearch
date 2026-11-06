@@ -1,17 +1,9 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { googleAdapter, type Block } from '../src';
+import { expectNotNested, loadFixture as load, summarize as summarizeWith } from './fixtures';
 
-function loadFixture(name: string): Document {
-  const html = readFileSync(join(import.meta.dirname, '../../../fixtures/google', name), 'utf8');
-  return new DOMParser().parseFromString(html, 'text/html');
-}
-
-/** Compact summary: organic results by host, other blocks by type. */
-function summarize(blocks: Block[]): string[] {
-  return blocks.map((b) => (b.type === 'organic' ? `organic:${googleAdapter.extractResult(b)?.host}` : b.type));
-}
+const loadFixture = (name: string) => load('google', name);
+const summarize = (blocks: Block[]) => summarizeWith(googleAdapter, blocks);
 
 describe('googleAdapter.matches', () => {
   it.each([
@@ -90,12 +82,7 @@ describe('googleAdapter.collectBlocks', () => {
 
   it('returns non-nested blocks', () => {
     for (const name of ['workbuddy.html', 'jay-chou.html', 'pizza.html', 'hotel.html']) {
-      const blocks = googleAdapter.collectBlocks(loadFixture(name));
-      for (const a of blocks) {
-        for (const b of blocks) {
-          if (a !== b) expect(a.el.contains(b.el), name).toBe(false);
-        }
-      }
+      expectNotNested(googleAdapter.collectBlocks(loadFixture(name)));
     }
   });
 

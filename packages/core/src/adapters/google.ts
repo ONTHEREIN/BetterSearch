@@ -85,6 +85,15 @@ function byDocumentOrder(a: Block, b: Block): number {
 
 export const googleAdapter: EngineAdapter = {
   id: 'google',
+  adSelectors: ['#tads', '#tadsb', '#tvcap', '#bottomads'],
+
+  ownsHost(hostname) {
+    return HOST.test(hostname);
+  },
+
+  searchBar(root) {
+    return root.querySelector('textarea[name="q"], input[name="q"]')?.closest('form') ?? null;
+  },
 
   matches(url) {
     if (!HOST.test(url.hostname) || url.pathname !== '/search') return false;
