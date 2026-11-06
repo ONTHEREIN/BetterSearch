@@ -97,6 +97,7 @@ describe('googleAdapter.extractResult', () => {
     expect(googleAdapter.extractResult(first!)).toMatchObject({
       title: 'WorkBuddy - AI Agent 办公新范式',
       href: expect.stringMatching(/^\/goto\?url=/),
+      url: null,
       host: 'www.workbuddy.cn',
     });
   });

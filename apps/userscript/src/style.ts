@@ -6,6 +6,10 @@ export const CLASSES = {
   blocked: 'bs-blocked',
   blockButton: 'bs-block-btn',
   notice: 'bs-notice',
+  suspicious: 'bs-suspicious',
+  warning: 'bs-warning',
+  aiCollapsed: 'bs-ai-collapsed',
+  aiBar: 'bs-ai-bar',
   toast: 'bs-toast',
 } as const;
 
@@ -19,7 +23,7 @@ const adCss = (adSelectors: readonly string[]) =>
 
 const CSS = `
 .${C.result} { position: relative; }
-.${C.blocked} { display: none !important; }
+.${C.blocked}, .${C.aiCollapsed} { display: none !important; }
 
 .${C.blockButton} {
   position: absolute; top: 0; right: 0; z-index: 1;
@@ -42,6 +46,14 @@ const CSS = `
   padding: 0; border: 0; background: none; color: #4c7cf0; font: inherit; cursor: pointer;
 }
 
+.${C.warning} {
+  display: flex; gap: 8px; margin-top: 8px; padding: 8px 12px; border-radius: 8px;
+  background: #fff4e5; color: #7a3306; font: 13px/1.5 system-ui, sans-serif;
+}
+.${C.warning}[hidden] { display: none; }
+.${C.warning}::before { content: '⚠'; flex: none; }
+html[data-bs-theme='dark'] .${C.warning} { background: #3a2610; color: #ffcf99; }
+
 .${C.toast} {
   position: fixed; left: 50%; bottom: 24px; z-index: 2147483646; transform: translateX(-50%);
   display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-radius: 10px;
@@ -59,11 +71,11 @@ let style: HTMLStyleElement | null = null;
  * Add the stylesheet, or put it back if the page removed it: Baidu rewrites
  * <head> when it swaps in new results. Safe to call repeatedly.
  */
-export function injectStyle(adSelectors: readonly string[]): void {
+export function injectStyle(adSelectors: readonly string[], extraCss = ''): void {
   if (style?.isConnected) return;
   if (!style) {
     style = document.createElement('style');
-    style.textContent = adCss(adSelectors) + CSS;
+    style.textContent = adCss(adSelectors) + CSS + extraCss;
   }
   // At document-start <head> may not exist yet; <html> always does.
   (document.head ?? document.documentElement).append(style);

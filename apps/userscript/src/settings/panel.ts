@@ -7,6 +7,7 @@ const GEAR_ICON =
 
 export interface PanelOptions {
   getSettings(): Settings;
+  getTheme(): 'dark' | 'light';
   onChange(settings: Settings): void;
 }
 
@@ -23,6 +24,7 @@ export function openSettings(options: PanelOptions): void {
   if (open) return;
   const host = document.createElement('div');
   host.id = 'bettersearch-settings';
+  host.dataset.theme = options.getTheme();
   // Outside <body> so the page's mutation observer does not see it.
   document.documentElement.append(host);
   const shadow = host.attachShadow({ mode: 'open' });

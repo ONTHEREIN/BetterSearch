@@ -30,14 +30,27 @@ function byDocumentOrder(a: Block, b: Block): number {
 
 export const bingAdapter: EngineAdapter = {
   id: 'bing',
-  adSelectors: ['#b_results > li.b_ad', '.b_adTop', '.b_adBottom', '#b_pole:has(.eu_promotedlabel)'],
+  // .b_bza_pole_wrapper is the full-width brand banner above the results.
+  adSelectors: ['.b_bza_pole_wrapper', '#b_results > li.b_ad', '.b_adTop', '.b_adBottom', '#b_pole:has(.eu_promotedlabel)'],
 
   ownsHost(hostname) {
     return HOST.test(hostname);
   },
 
+  resultsContainer(root) {
+    return root.querySelector<HTMLElement>('#b_results');
+  },
+
+  sideColumn(root) {
+    return root.querySelector<HTMLElement>('#b_context');
+  },
+
   searchBar(root) {
     return root.querySelector('#sb_form_q')?.closest('form') ?? null;
+  },
+
+  query(url) {
+    return url.searchParams.get('q') ?? '';
   },
 
   matches(url) {
@@ -46,6 +59,9 @@ export const bingAdapter: EngineAdapter = {
 
   collectBlocks(root) {
     const blocks: Block[] = [];
+
+    const brand = root.querySelector<HTMLElement>('.b_bza_pole_wrapper');
+    if (hasText(brand)) blocks.push({ el: brand, type: 'ad' });
 
     // Wide areas above the results: a promotion, or a knowledge card.
     const pole = root.querySelector<HTMLElement>('#b_pole');
@@ -73,8 +89,8 @@ export const bingAdapter: EngineAdapter = {
     const link = block.el.querySelector('h2 a');
     if (!link) return null;
     const href = link.getAttribute('href') ?? '';
-    let host = hostFromDisplayUrl(block.el.querySelector('cite')?.textContent);
-    if (!host && /^https?:\/\//.test(href)) host = new URL(href).hostname;
-    return { title: link.textContent?.trim() ?? '', href, host };
+    const url = /^https?:\/\//.test(href) && !/^https?:\/\/[^/]*bing\.com\//.test(href) ? href : null;
+    const host = hostFromDisplayUrl(block.el.querySelector('cite')?.textContent) ?? (url ? new URL(url).hostname : null);
+    return { title: link.textContent?.trim() ?? '', href, url, host };
   },
 };

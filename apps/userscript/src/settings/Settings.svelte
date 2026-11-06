@@ -48,11 +48,65 @@
   </header>
 
   <section>
+    <h3>外观</h3>
+    <label class="row">
+      <input type="checkbox" bind:checked={settings.layout} onchange={commit} />
+      <span>使用多列卡片布局</span>
+    </label>
+    {#if settings.layout}
+      <label class="row">
+        <span class="label">列数</span>
+        <select bind:value={settings.columns} onchange={commit}>
+          <option value="auto">自动（按窗口宽度）</option>
+          <option value="1">1 列</option>
+          <option value="2">2 列</option>
+          <option value="3">3 列</option>
+        </select>
+      </label>
+      <fieldset>
+        <legend>结果样式</legend>
+        <label class="row">
+          <input type="radio" name="bs-style" value="card" bind:group={settings.cardStyle} onchange={commit} />
+          <span>卡片</span>
+        </label>
+        <label class="row">
+          <input type="radio" name="bs-style" value="line" bind:group={settings.cardStyle} onchange={commit} />
+          <span>细线分隔</span>
+        </label>
+      </fieldset>
+      <fieldset>
+        <legend>密度</legend>
+        <label class="row">
+          <input type="radio" name="bs-density" value="compact" bind:group={settings.density} onchange={commit} />
+          <span>紧凑</span>
+        </label>
+        <label class="row">
+          <input type="radio" name="bs-density" value="comfortable" bind:group={settings.density} onchange={commit} />
+          <span>宽松</span>
+        </label>
+      </fieldset>
+    {/if}
+    <label class="row">
+      <input type="checkbox" bind:checked={settings.collapseAiAnswers} onchange={commit} />
+      <span>把搜索引擎自带的 AI 回答折叠成一行</span>
+    </label>
+  </section>
+
+  <section>
     <h3>广告</h3>
     <label class="row">
       <input type="checkbox" bind:checked={settings.removeAds} onchange={commit} />
       <span>去除搜索结果中的广告</span>
     </label>
+  </section>
+
+  <section>
+    <h3>链接</h3>
+    <label class="row">
+      <input type="checkbox" bind:checked={settings.cleanLinks} onchange={commit} />
+      <span>点击结果时直接打开目标网站，并去掉链接里的跟踪参数</span>
+    </label>
+    <p class="hint">Google 的结果链接是加密跳转，暂时只能去掉点击上报。</p>
   </section>
 
   <section>
@@ -99,15 +153,14 @@
     --accent: #1a4fd6;
     --field: #f5f6f8;
   }
-  @media (prefers-color-scheme: dark) {
-    :host {
-      --bg: #171a21;
-      --fg: #e4e7ec;
-      --dim: #9aa3b2;
-      --line: #2a303b;
-      --accent: #a9c1ff;
-      --field: #1f242d;
-    }
+  /* The host carries the engine page's theme, which may differ from the system's. */
+  :host([data-theme='dark']) {
+    --bg: #171a21;
+    --fg: #e4e7ec;
+    --dim: #9aa3b2;
+    --line: #2a303b;
+    --accent: #a9c1ff;
+    --field: #1f242d;
   }
 
   .backdrop {
@@ -183,6 +236,18 @@
     gap: 6px;
     margin-top: 12px;
   }
+  .label {
+    min-width: 3em;
+    color: var(--dim);
+  }
+  select {
+    padding: 4px 8px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--field);
+    color: var(--fg);
+    font: inherit;
+  }
   textarea {
     box-sizing: border-box;
     width: 100%;
@@ -243,6 +308,7 @@
   }
   button:focus-visible,
   input:focus-visible,
+  select:focus-visible,
   textarea:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;

@@ -52,10 +52,19 @@ function realUrl(el: HTMLElement): URL | null {
 
 export const baiduAdapter: EngineAdapter = {
   id: 'baidu',
-  adSelectors: [`#content_left > div:not([tpl]):has(${AD_LINK})`],
+  // #top-ad is the full-width brand banner above the results.
+  adSelectors: ['#top-ad', `#content_left > div:not([tpl]):has(${AD_LINK})`],
 
   ownsHost(hostname) {
     return HOST.test(hostname);
+  },
+
+  resultsContainer(root) {
+    return root.querySelector<HTMLElement>('#content_left');
+  },
+
+  sideColumn(root) {
+    return root.querySelector<HTMLElement>('#content_right');
   },
 
   searchBar(root) {
@@ -68,6 +77,10 @@ export const baiduAdapter: EngineAdapter = {
     );
   },
 
+  query(url) {
+    return url.searchParams.get('wd') ?? url.searchParams.get('word') ?? '';
+  },
+
   matches(url) {
     if (!HOST.test(url.hostname) || url.pathname !== '/s') return false;
     // tn=news is the news tab; pd selects other verticals such as notes.
@@ -76,6 +89,8 @@ export const baiduAdapter: EngineAdapter = {
 
   collectBlocks(root) {
     const blocks: Block[] = [];
+    const brand = root.querySelector<HTMLElement>('#top-ad');
+    if (brand?.textContent?.trim()) blocks.push({ el: brand, type: 'ad' });
     for (const el of root.querySelectorAll<HTMLElement>('#content_left > *, #content_right [tpl]')) {
       if (el.textContent?.trim()) blocks.push({ el, type: classify(el) });
     }
@@ -86,8 +101,8 @@ export const baiduAdapter: EngineAdapter = {
     if (block.type !== 'organic') return null;
     const link = block.el.querySelector('h3 a');
     if (!link) return null;
-    const host =
-      realUrl(block.el)?.hostname ?? hostFromDisplayUrl(block.el.querySelector('[class*="showurl"]')?.textContent);
-    return { title: link.textContent?.trim() ?? '', href: link.getAttribute('href') ?? '', host };
+    const url = realUrl(block.el);
+    const host = url?.hostname ?? hostFromDisplayUrl(block.el.querySelector('[class*="showurl"]')?.textContent);
+    return { title: link.textContent?.trim() ?? '', href: link.getAttribute('href') ?? '', url: url?.href ?? null, host };
   },
 };

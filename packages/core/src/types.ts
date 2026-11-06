@@ -21,7 +21,9 @@ export interface ResultInfo {
   title: string;
   /** The link as written in the page; may be an engine redirect. */
   href: string;
-  /** Hostname taken from the URL the engine displays, e.g. `www.example.com`. */
+  /** The real destination when the page reveals it; null behind an opaque redirect. */
+  url: string | null;
+  /** Hostname of the destination, or of the URL the engine displays. */
   host: string | null;
 }
 
@@ -31,11 +33,17 @@ export interface EngineAdapter {
   ownsHost(hostname: string): boolean;
   /** True when `url` is this engine's "all / web" results tab. */
   matches(url: URL): boolean;
+  /** The search terms in a results URL. */
+  query(url: URL): string;
   /**
    * CSS selectors for ads, injected at document-start so ads never paint.
    * May use `:has()`. Ads are still classified by `collectBlocks`.
    */
   adSelectors: readonly string[];
+  /** The element whose children are the main results; the grid container. */
+  resultsContainer(root: ParentNode): HTMLElement | null;
+  /** The engine's right-hand column, if any. */
+  sideColumn(root: ParentNode): HTMLElement | null;
   /** The visible search bar, where the settings button goes. */
   searchBar(root: ParentNode): HTMLElement | null;
   /** All recognised blocks, in document order. */

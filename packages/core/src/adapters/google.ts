@@ -91,8 +91,20 @@ export const googleAdapter: EngineAdapter = {
     return HOST.test(hostname);
   },
 
+  resultsContainer(root) {
+    return root.querySelector<HTMLElement>('#rso');
+  },
+
+  sideColumn(root) {
+    return root.querySelector<HTMLElement>('#rhs');
+  },
+
   searchBar(root) {
     return root.querySelector('textarea[name="q"], input[name="q"]')?.closest('form') ?? null;
+  },
+
+  query(url) {
+    return url.searchParams.get('q') ?? '';
   },
 
   matches(url) {
@@ -127,9 +139,12 @@ export const googleAdapter: EngineAdapter = {
     const title = block.el.querySelector('a h3');
     const link = title?.closest('a');
     if (!title || !link) return null;
+    const href = link.getAttribute('href') ?? '';
     return {
       title: title.textContent?.trim() ?? '',
-      href: link.getAttribute('href') ?? '',
+      href,
+      // Results usually link through an opaque /goto redirect.
+      url: /^https?:\/\//.test(href) ? href : null,
       host: hostFromDisplayUrl(block.el.querySelector('cite')?.textContent),
     };
   },

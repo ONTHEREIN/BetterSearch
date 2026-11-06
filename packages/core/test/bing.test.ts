@@ -70,6 +70,7 @@ describe('bingAdapter.extractResult', () => {
     expect(bingAdapter.extractResult(first!)).toEqual({
       title: 'WorkBuddy - AI Agent 办公新范式',
       href: 'https://www.workbuddy.cn/',
+      url: 'https://www.workbuddy.cn/',
       host: 'www.workbuddy.cn',
     });
   });

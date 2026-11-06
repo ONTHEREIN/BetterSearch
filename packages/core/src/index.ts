@@ -2,6 +2,9 @@ export type { Block, BlockType, EngineAdapter, EngineId, KeyValueStore, ResultIn
 export { baiduAdapter } from './adapters/baidu';
 export { bingAdapter } from './adapters/bing';
 export { googleAdapter } from './adapters/google';
+export { autoColumns, planGrid, type GridPlan } from './layout';
+export { stripTracking } from './links';
+export { brandTokens, checkLookalike, type LookalikeWarning, type PageResult } from './lookalike';
 export { compileRules, siteRule, type RuleSet } from './rules';
 export {
   addRule,
@@ -10,6 +13,9 @@ export {
   removeRule,
   saveSettings,
   type BlockAction,
+  type CardStyle,
+  type Columns,
+  type Density,
   type Settings,
 } from './settings';
 export { hostFromDisplayUrl, registrableDomain, siteOf, stripWww } from './url';

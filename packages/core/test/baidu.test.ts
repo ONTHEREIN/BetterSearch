@@ -21,7 +21,7 @@ describe('baiduAdapter.matches', () => {
 describe('baiduAdapter.collectBlocks', () => {
   it('finds ads between results', () => {
     const summary = summaryOf('workbuddy.html');
-    expect(summary.filter((s) => s === 'ad')).toHaveLength(4);
+    expect(summary.filter((s) => s === 'ad')).toHaveLength(5);
     expect(summary.filter((s) => s.startsWith('organic'))).toEqual([
       'organic:copilot.tencent.com',
       'organic:cloud.tencent.com',
@@ -64,6 +64,7 @@ describe('baiduAdapter.extractResult', () => {
     expect(baiduAdapter.extractResult(block)).toMatchObject({
       title: 'WorkBuddy - AI Agent 办公新范式',
       href: expect.stringMatching(/^http:\/\/www\.baidu\.com\/link\?url=/),
+      url: 'https://copilot.tencent.com/work/',
       host: 'copilot.tencent.com',
     });
   });

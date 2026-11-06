@@ -9,10 +9,12 @@ import {
   type EngineAdapter,
   type Settings,
 } from '@bettersearch/core';
+import { LAYOUT_CSS } from './layout';
 import { Page } from './page';
 import { registerMenuCommand, store } from './platform';
 import { addGearButton, toggleSettings, type PanelOptions } from './settings/panel';
 import { injectStyle, NO_ADS_CLASS } from './style';
+import { syncTheme } from './theme';
 import { showToast } from './toast';
 
 function run(adapter: EngineAdapter): void {
@@ -31,6 +33,7 @@ function run(adapter: EngineAdapter): void {
 
   const panel: PanelOptions = {
     getSettings: () => settings,
+    getTheme: syncTheme,
     onChange: (next) => update(next),
   };
 
@@ -40,6 +43,7 @@ function run(adapter: EngineAdapter): void {
 
   function update(next: Settings): void {
     settings = next;
+    page.grid.invalidate();
     saveSettings(store, settings);
     applyGlobal();
     page.update(settings);
@@ -47,22 +51,32 @@ function run(adapter: EngineAdapter): void {
 
   /** Everything that has to be redone when the page swaps its content in place. */
   function refresh(): void {
-    injectStyle(adapter.adSelectors);
+    injectStyle(adapter.adSelectors, LAYOUT_CSS);
+    syncTheme();
     page.apply();
     addGearButton(adapter.searchBar(document), panel);
   }
 
   function start(): void {
+    syncTheme();
     page.update(settings);
     addGearButton(adapter.searchBar(document), panel);
     // Mutation callbacks are already batched and run before the next paint, so
     // new results never show unprocessed. requestAnimationFrame would stall in
     // background tabs. `refresh` is idempotent, so its own mutations settle.
     new MutationObserver(refresh).observe(document.body, { childList: true, subtree: true });
+    let resizeTimer = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        page.grid.invalidate();
+        page.apply();
+      }, 100);
+    });
   }
 
   // Runs at document-start: hide ads before the page paints.
-  injectStyle(adapter.adSelectors);
+  injectStyle(adapter.adSelectors, LAYOUT_CSS);
   applyGlobal();
   registerMenuCommand('BetterSearch 设置', () => toggleSettings(panel));
   window.addEventListener('keydown', (event) => {
