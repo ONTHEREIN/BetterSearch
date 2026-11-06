@@ -45,6 +45,13 @@ export const bingAdapter: EngineAdapter = {
     return root.querySelector<HTMLElement>('#b_context');
   },
 
+  paginationSelector: '#b_results > li.b_pag',
+
+  nextPageUrl(root, base) {
+    const href = (root.querySelector<HTMLAnchorElement>('a.sb_pagN'))?.getAttribute('href');
+    return href ? new URL(href, base).href : null;
+  },
+
   searchBar(root) {
     return root.querySelector('#sb_form_q')?.closest('form') ?? null;
   },

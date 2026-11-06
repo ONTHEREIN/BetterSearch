@@ -53,9 +53,10 @@ export class Page {
     private readonly hooks: PageHooks,
   ) {}
 
-  update(settings: Settings): void {
+  /** `rules` is the user's own rules plus enabled subscriptions. */
+  update(settings: Settings, rules: string): void {
     this.settings = settings;
-    this.rules = compileRules(settings.rules);
+    this.rules = compileRules(rules);
     this.apply();
   }
 

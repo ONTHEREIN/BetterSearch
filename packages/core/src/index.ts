@@ -7,6 +7,18 @@ export { stripTracking } from './links';
 export { brandTokens, checkLookalike, type LookalikeWarning, type PageResult } from './lookalike';
 export { compileRules, siteRule, type RuleSet } from './rules';
 export {
+  cachedList,
+  combinedRules,
+  isStale,
+  lastFailure,
+  refreshSubscription,
+  REFRESH_AFTER_MS,
+  type CachedList,
+  type FetchFailure,
+  type Fetcher,
+  type Subscription,
+} from './subscriptions';
+export {
   addRule,
   DEFAULT_SETTINGS,
   loadSettings,

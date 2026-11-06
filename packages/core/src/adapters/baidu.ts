@@ -67,6 +67,13 @@ export const baiduAdapter: EngineAdapter = {
     return root.querySelector<HTMLElement>('#content_right');
   },
 
+  paginationSelector: '#page',
+
+  nextPageUrl(root, base) {
+    const href = ([...root.querySelectorAll<HTMLAnchorElement>('#page a.n')].at(-1) ?? null)?.getAttribute('href');
+    return href ? new URL(href, base).href : null;
+  },
+
   searchBar(root) {
     // The current page searches from a textarea outside any form and keeps the
     // classic form hidden; fall back to the form on older layouts.

@@ -1,13 +1,16 @@
 <script lang="ts">
-  import { removeRule, type Settings } from '@bettersearch/core';
+  import { removeRule, type Settings, type Subscription } from '@bettersearch/core';
+  import type { SubscriptionStatus } from './panel';
 
   interface Props {
     settings: Settings;
     onchange: (settings: Settings) => void;
     onclose: () => void;
+    refreshSubscriptions: () => Promise<void>;
+    subscriptionStatus: (sub: Subscription) => SubscriptionStatus;
   }
 
-  let { settings: initial, onchange, onclose }: Props = $props();
+  let { settings: initial, onchange, onclose, refreshSubscriptions, subscriptionStatus }: Props = $props();
   // The panel edits its own copy, taken once when it opens.
   // svelte-ignore state_referenced_locally
   let settings = $state({ ...initial });
@@ -27,6 +30,39 @@
   function unblock(host: string) {
     settings.rules = removeRule(settings.rules, `*://*.${host}/*`);
     commit();
+  }
+
+  let newSubscription = $state('');
+  let refreshing = $state(false);
+  /** Bumped after a refresh so the status lines read the cache again. */
+  let statusVersion = $state(0);
+
+  function addSubscription() {
+    const urls = newSubscription.split(/\s+/).filter((u) => /^https?:\/\//.test(u));
+    if (!urls.length) return;
+    settings.subscriptions = [...settings.subscriptions, { urls, enabled: true }];
+    newSubscription = '';
+    commit();
+  }
+
+  function removeSubscription(index: number) {
+    settings.subscriptions = settings.subscriptions.filter((_, i) => i !== index);
+    commit();
+  }
+
+  async function refreshAll() {
+    refreshing = true;
+    await refreshSubscriptions();
+    refreshing = false;
+    statusVersion += 1;
+  }
+
+  function describe(sub: Subscription, _version: number): string {
+    const status = subscriptionStatus(sub);
+    if (status.error && !status.fetchedAt) return `更新失败：${status.error}`;
+    if (!status.fetchedAt) return '尚未下载';
+    const when = new Date(status.fetchedAt).toLocaleString();
+    return `${status.ruleCount} 条规则，更新于 ${when}${status.error ? '（最近一次更新失败）' : ''}`;
   }
 
   function onkeydown(event: KeyboardEvent) {
@@ -93,6 +129,21 @@
   </section>
 
   <section>
+    <h3>翻页</h3>
+    <label class="row">
+      <input type="checkbox" bind:checked={settings.autoPage} onchange={commit} />
+      <span>滚动到底部时自动加载下一页</span>
+    </label>
+    {#if settings.autoPage}
+      <label class="row">
+        <span class="label">自动加载</span>
+        <input class="number" type="number" min="1" max="20" bind:value={settings.autoPageLimit} onchange={commit} />
+        <span>页后，改为点击按钮加载</span>
+      </label>
+    {/if}
+  </section>
+
+  <section>
     <h3>广告</h3>
     <label class="row">
       <input type="checkbox" bind:checked={settings.removeAds} onchange={commit} />
@@ -135,6 +186,36 @@
     {:else}
       <p class="hint">还没有屏蔽任何网站。把鼠标移到搜索结果上，点右上角的图标就能屏蔽它所在的网站。</p>
     {/if}
+
+    <h3 class="sub">订阅列表</h3>
+    {#each settings.subscriptions as sub, i (sub.urls[0])}
+      <div class="subscription">
+        <label class="row">
+          <input type="checkbox" bind:checked={sub.enabled} onchange={commit} />
+          <span class="host">{sub.urls[0]}</span>
+        </label>
+        <p class="hint">{describe(sub, statusVersion)}{sub.urls.length > 1 ? `，另有 ${sub.urls.length - 1} 个镜像` : ''}</p>
+        <button type="button" class="link" onclick={() => removeSubscription(i)}>删除</button>
+      </div>
+    {/each}
+    <div class="row add">
+      <label class="visually-hidden" for="bs-new-sub">订阅地址</label>
+      <input
+        id="bs-new-sub"
+        class="text"
+        type="url"
+        placeholder="订阅地址，多个镜像用空格分隔"
+        bind:value={newSubscription}
+        onkeydown={(e) => e.key === 'Enter' && addSubscription()}
+      />
+      <button type="button" class="link" onclick={addSubscription}>添加</button>
+    </div>
+    {#if settings.subscriptions.length}
+      <button type="button" class="link" disabled={refreshing} onclick={refreshAll}>
+        {refreshing ? '正在更新…' : '立即更新全部订阅'}
+      </button>
+    {/if}
+    <p class="hint">支持 uBlacklist 格式的列表，每 24 小时自动更新。第一次访问新的地址时，脚本管理器会请你确认。</p>
 
     <label class="stack">
       <span>屏蔽规则</span>
@@ -239,6 +320,48 @@
   .label {
     min-width: 3em;
     color: var(--dim);
+  }
+  h3.sub {
+    margin-top: 16px;
+  }
+  .subscription {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .subscription .hint {
+    margin: 0 0 2px 26px;
+  }
+  .subscription .link {
+    margin-left: 26px;
+  }
+  .add {
+    margin-top: 8px;
+  }
+  input.text {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--field);
+    color: var(--fg);
+    font: 13px 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  input.number {
+    width: 4em;
+    padding: 4px 6px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--field);
+    color: var(--fg);
+    font: inherit;
   }
   select {
     padding: 4px 8px;

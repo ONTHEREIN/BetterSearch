@@ -29,6 +29,8 @@ export default defineConfig({
           'https://www.baidu.com/s*',
         ],
         'run-at': 'document-start',
+        // Subscriptions can live on any host; the manager asks once per host.
+        connect: ['*'],
       },
       build: {
         fileName: 'bettersearch.user.js',

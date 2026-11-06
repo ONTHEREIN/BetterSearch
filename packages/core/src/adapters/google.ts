@@ -99,6 +99,13 @@ export const googleAdapter: EngineAdapter = {
     return root.querySelector<HTMLElement>('#rhs');
   },
 
+  paginationSelector: '#botstuff [role="navigation"], #foot',
+
+  nextPageUrl(root, base) {
+    const href = (root.querySelector<HTMLAnchorElement>('#pnnext'))?.getAttribute('href');
+    return href ? new URL(href, base).href : null;
+  },
+
   searchBar(root) {
     return root.querySelector('textarea[name="q"], input[name="q"]')?.closest('form') ?? null;
   },

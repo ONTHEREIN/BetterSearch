@@ -44,6 +44,10 @@ export interface EngineAdapter {
   resultsContainer(root: ParentNode): HTMLElement | null;
   /** The engine's right-hand column, if any. */
   sideColumn(root: ParentNode): HTMLElement | null;
+  /** Absolute URL of the next results page, or null on the last page. */
+  nextPageUrl(root: ParentNode, base: string): string | null;
+  /** The engine's own page links, hidden while results load automatically. */
+  paginationSelector: string;
   /** The visible search bar, where the settings button goes. */
   searchBar(root: ParentNode): HTMLElement | null;
   /** All recognised blocks, in document order. */

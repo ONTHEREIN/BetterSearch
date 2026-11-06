@@ -1,6 +1,11 @@
 import {
   adapterForHost,
   addRule,
+  cachedList,
+  combinedRules,
+  isStale,
+  lastFailure,
+  refreshSubscription,
   loadSettings,
   removeRule,
   saveSettings,
@@ -11,7 +16,8 @@ import {
 } from '@bettersearch/core';
 import { LAYOUT_CSS } from './layout';
 import { Page } from './page';
-import { registerMenuCommand, store } from './platform';
+import { Pager, pagerCss } from './pager';
+import { fetchText, registerMenuCommand, store } from './platform';
 import { addGearButton, toggleSettings, type PanelOptions } from './settings/panel';
 import { injectStyle, NO_ADS_CLASS } from './style';
 import { syncTheme } from './theme';
@@ -31,10 +37,36 @@ function run(adapter: EngineAdapter): void {
     },
   });
 
+  const pager = new Pager(adapter);
+  const allRules = () => combinedRules(store, settings.rules, settings.subscriptions);
+
+  /** Fetch subscriptions that are out of date (or all, when forced), then re-apply. */
+  async function refreshSubscriptions(force = false): Promise<void> {
+    const now = Date.now();
+    const due = settings.subscriptions.filter((s) => s.enabled && (force || isStale(cachedList(store, s), now)));
+    if (!due.length) return;
+    await Promise.all(due.map((s) => refreshSubscription(store, s, fetchText)));
+    page.update(settings, allRules());
+  }
+
   const panel: PanelOptions = {
     getSettings: () => settings,
     getTheme: syncTheme,
-    onChange: (next) => update(next),
+    onChange: (next) => {
+      const added = next.subscriptions.length > settings.subscriptions.length;
+      update(next);
+      if (added) void refreshSubscriptions();
+    },
+    refreshSubscriptions: () => refreshSubscriptions(true),
+    subscriptionStatus: (sub) => {
+      const list = cachedList(store, sub);
+      const failure = lastFailure(store, sub);
+      return {
+        fetchedAt: list?.fetchedAt ?? null,
+        ruleCount: list ? list.rules.split('\n').filter((l) => l.trim() && !l.trim().startsWith('#')).length : 0,
+        error: failure?.message ?? null,
+      };
+    },
   };
 
   function applyGlobal(): void {
@@ -46,21 +78,25 @@ function run(adapter: EngineAdapter): void {
     page.grid.invalidate();
     saveSettings(store, settings);
     applyGlobal();
-    page.update(settings);
+    page.update(settings, allRules());
+    pager.sync(settings);
   }
 
   /** Everything that has to be redone when the page swaps its content in place. */
   function refresh(): void {
-    injectStyle(adapter.adSelectors, LAYOUT_CSS);
+    injectStyle(adapter.adSelectors, LAYOUT_CSS + pagerCss(adapter.paginationSelector));
     syncTheme();
     page.apply();
+    pager.sync(settings);
     addGearButton(adapter.searchBar(document), panel);
   }
 
   function start(): void {
     syncTheme();
-    page.update(settings);
+    page.update(settings, allRules());
+    pager.sync(settings);
     addGearButton(adapter.searchBar(document), panel);
+    void refreshSubscriptions();
     // Mutation callbacks are already batched and run before the next paint, so
     // new results never show unprocessed. requestAnimationFrame would stall in
     // background tabs. `refresh` is idempotent, so its own mutations settle.
@@ -76,7 +112,7 @@ function run(adapter: EngineAdapter): void {
   }
 
   // Runs at document-start: hide ads before the page paints.
-  injectStyle(adapter.adSelectors, LAYOUT_CSS);
+  injectStyle(adapter.adSelectors, LAYOUT_CSS + pagerCss(adapter.paginationSelector));
   applyGlobal();
   registerMenuCommand('BetterSearch 设置', () => toggleSettings(panel));
   window.addEventListener('keydown', (event) => {

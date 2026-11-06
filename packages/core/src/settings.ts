@@ -1,3 +1,4 @@
+import type { Subscription } from './subscriptions';
 import type { KeyValueStore } from './types';
 
 export type BlockAction = 'collapse' | 'hide';
@@ -16,10 +17,16 @@ export interface Settings {
   columns: Columns;
   cardStyle: CardStyle;
   density: Density;
+  /** Load the next page of results when scrolling near the end. */
+  autoPage: boolean;
+  /** Pages loaded automatically before switching to a "load more" button. */
+  autoPageLimit: number;
   /** Fold the engine's own AI answer into a one-line bar. */
   collapseAiAnswers: boolean;
   /** Block rules in uBlacklist syntax, one per line. */
   rules: string;
+  /** Rule lists fetched from the web, in the same syntax. */
+  subscriptions: Subscription[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -31,7 +38,10 @@ export const DEFAULT_SETTINGS: Settings = {
   cardStyle: 'card',
   density: 'compact',
   collapseAiAnswers: true,
+  autoPage: true,
+  autoPageLimit: 5,
   rules: '',
+  subscriptions: [],
 };
 
 const KEY = 'settings';
