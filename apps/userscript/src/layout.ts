@@ -1,4 +1,5 @@
 import { gridSize, type GridPlan, type Settings } from '@bettersearch/core';
+import { CLASSES } from './style';
 
 export const LAYOUT_ATTR = 'data-bs-layout';
 
@@ -91,7 +92,7 @@ export class Grid {
     // Cells hold one block each; organic cells sit in columns, the rest span the row.
     for (const [blockEl, cell] of plan.cells) cell.classList.toggle(GRID.organic, organic.has(blockEl));
     // Engines leave empty placeholder nodes between results. As grid items they
-    // would each take a full row and split pairs of results, so flatten them.
+    // would each take a full row and split pairs of results.
     const cells = new Set(plan.cells.values());
     // An empty module cell (nothing rendered yet, or hidden by the engine) would
     // take a full row too and split the results around it.
@@ -108,11 +109,19 @@ export class Grid {
     for (const parent of [container, ...plan.wrappers]) {
       for (const child of parent.children) {
         if (NON_RENDERED.has(child.tagName) || !(child instanceof HTMLElement) || cells.has(child)) continue;
-        // Re-mark placeholders flattened on an earlier pass too: unmarked
-        // elements are cleaned up below, which would un-flatten them every
-        // other pass. A flattened placeholder has no box, so it still reads 0.
-        const ours = [...child.classList].some((c) => c.startsWith('bs-') && c !== GRID.wrapper);
-        if (!ours && child.getBoundingClientRect().height === 0) mark(child, GRID.wrapper);
+        // Re-mark placeholders handled on an earlier pass too: unmarked
+        // elements are cleaned up below, which would undo them every other
+        // pass. Both kinds below still read 0 once marked. Modules we moved
+        // out of results count: Bing injects them empty and fills them later.
+        const ours = [...child.classList].some(
+          (c) => c.startsWith('bs-') && c !== GRID.wrapper && c !== GRID.empty && c !== CLASSES.moved,
+        );
+        if (ours || child.getBoundingClientRect().height !== 0) continue;
+        // Flattened, a placeholder's children would become grid items and take
+        // rows of their own. So take a truly empty one out of the flow; flatten
+        // only one whose content shows outside its zero-height box (floats).
+        range.selectNodeContents(child);
+        mark(child, range.getBoundingClientRect().height > 0 ? GRID.wrapper : GRID.empty);
       }
     }
     for (const [el, cls] of this.marked) {

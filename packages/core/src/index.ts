@@ -5,6 +5,7 @@ export { googleAdapter } from './adapters/google';
 export { autoColumns, gridSize, planGrid, type GridPlan } from './layout';
 export { stripTracking } from './links';
 export { detectLocale, setLocale, t, type Locale, type MessageKey } from './i18n';
+export { reportUrl, RULES_REPO } from './report';
 export { brandTokens, checkLookalike, type LookalikeWarning, type PageResult } from './lookalike';
 export { compileRules, siteRule, type RuleSet } from './rules';
 export {

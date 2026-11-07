@@ -1,5 +1,6 @@
 import {
   checkLookalike,
+  reportUrl,
   compileRules,
   planGrid,
   siteOf,
@@ -15,6 +16,9 @@ import { CLASSES } from './style';
 
 /** The `target` a link had before we changed it, so `engine` can restore it. */
 const ORIGINAL_TARGET = 'data-bs-target';
+
+const REPORT_ICON =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h11l-2 4 2 4H5"></path></svg>';
 
 const BLOCK_ICON =
   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M5.6 5.6l12.8 12.8"></path></svg>';
@@ -135,10 +139,12 @@ export class Page {
     this.setLinkTargets(el);
     if (!info.host) return;
     this.ensureBlockButton(el, info.host);
+    const report = () => window.open(reportUrl(info.host!, query, this.adapter.id), '_blank', 'noopener');
+    this.ensureReportButton(el, info.host, report);
     const warning = checkLookalike(info, query, page);
     el.classList.toggle(CLASSES.suspicious, !!warning);
     if (warning) {
-      const box = this.ensureWarning(el);
+      const box = this.ensureWarning(el, report);
       setText(box.querySelector('span')!, warning.message);
       box.hidden = false;
     } else {
@@ -188,13 +194,39 @@ export class Page {
     result.prepend(button);
   }
 
-  private ensureWarning(result: HTMLElement): HTMLElement {
+  /** A button, not a link: adapters read a result's links, and ours must not be taken for it. */
+  private ensureReportButton(result: HTMLElement, host: string, report: () => void): void {
+    if (result.querySelector(`:scope > .${CLASSES.reportButton}`)) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `${CLASSES.blockButton} ${CLASSES.reportButton}`;
+    button.title = t('report.button', { site: siteOf(host) });
+    button.setAttribute('aria-label', button.title);
+    button.innerHTML = REPORT_ICON;
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      report();
+    });
+    result.prepend(button);
+  }
+
+  private ensureWarning(result: HTMLElement, report: () => void): HTMLElement {
     let box = this.warnings.get(result);
     if (!box?.isConnected) {
       box = document.createElement('div');
       box.className = CLASSES.warning;
       box.setAttribute('role', 'note');
-      box.append(document.createElement('span'));
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = CLASSES.reportLink;
+      link.textContent = t('report.link');
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        report();
+      });
+      box.append(document.createElement('span'), link);
       result.append(box);
       this.warnings.set(result, box);
     }

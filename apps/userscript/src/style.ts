@@ -5,6 +5,8 @@ export const CLASSES = {
   result: 'bs-result',
   blocked: 'bs-blocked',
   blockButton: 'bs-block-btn',
+  reportButton: 'bs-report-btn',
+  reportLink: 'bs-report-link',
   notice: 'bs-notice',
   suspicious: 'bs-suspicious',
   warning: 'bs-warning',
@@ -37,6 +39,11 @@ const CSS = `
 .${C.blockButton}:hover { opacity: 1 !important; background: rgba(127, 127, 127, .15); }
 .${C.blockButton}:focus-visible { outline: 2px solid #4c7cf0; outline-offset: 1px; }
 @media (hover: none) { .${C.blockButton} { opacity: .6; } }
+.${C.blockButton}.${C.reportButton} { right: 32px; }
+.${C.reportLink} {
+  flex: none; margin-left: auto; padding: 0; border: 0; background: none;
+  color: inherit; font: inherit; text-decoration: underline; cursor: pointer;
+}
 
 .${C.notice} {
   display: flex; align-items: center; gap: 8px; margin: 0 0 16px; padding: 6px 0;
