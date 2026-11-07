@@ -10,6 +10,7 @@ export const GRID = {
   organic: 'bs-cell-organic',
   span: 'bs-cell-span',
   noBleed: 'bs-no-bleed',
+  empty: 'bs-cell-empty',
   wide: 'bs-wide',
   wideParent: 'bs-wide-parent',
   side: 'bs-side',
@@ -35,12 +36,17 @@ function isShown(el: HTMLElement | null): el is HTMLElement {
 /**
  * Engines pull some modules into their page gutter with negative side margins
  * (Bing's encyclopedia cards use -20px). Inside a padded card that pushes them
- * past its edge, so cancel those margins.
+ * past its edge, so cancel those margins. A negative margin matched by equal
+ * padding (Bing's captions: -16px and 16px) keeps its content in place and is
+ * left alone, or the content would shift inwards.
  */
 function preventBleed(cell: HTMLElement): void {
+  const bleeds = (margin: string, padding: string) => parseFloat(margin) + parseFloat(padding) < 0;
   for (const el of cell.querySelectorAll<HTMLElement>('div, ul, ol, section')) {
     const style = getComputedStyle(el);
-    if (parseFloat(style.marginLeft) < 0 || parseFloat(style.marginRight) < 0) el.classList.add(GRID.noBleed);
+    if (bleeds(style.marginLeft, style.paddingLeft) || bleeds(style.marginRight, style.paddingRight)) {
+      el.classList.add(GRID.noBleed);
+    }
   }
 }
 
@@ -48,7 +54,7 @@ function preventBleed(cell: HTMLElement): void {
 export class Grid {
   /** Every element we put a class on, so turning the layout off can undo it. */
   private readonly marked = new Map<HTMLElement, string>();
-  private measuredFor: { container: HTMLElement; viewport: number; settings: string } | null = null;
+  private measuredFor: { container: HTMLElement; viewport: number; settings: string; side: boolean } | null = null;
   /** Results whose content does not fit one column, e.g. sitelinks in two columns. */
   private readonly spanning = new WeakSet<HTMLElement>();
   private readonly bleedChecked = new WeakSet<HTMLElement>();
@@ -82,12 +88,23 @@ export class Grid {
     // Engines leave empty placeholder nodes between results. As grid items they
     // would each take a full row and split pairs of results, so flatten them.
     const cells = new Set(plan.cells.values());
+    // An empty module cell (nothing rendered yet, or hidden by the engine) would
+    // take a full row too and split the results around it.
+    for (const [blockEl, cell] of plan.cells) {
+      if (organic.has(blockEl) || cell.classList.contains('bs-ad')) continue;
+      // Measured through the children: a flattened cell has no box of its own,
+      // and must come back once the engine fills it.
+      const rendered = [...cell.children].some((c) => c.getBoundingClientRect().height > 0);
+      cell.classList.toggle(GRID.empty, !rendered && !cell.querySelector('img, video, iframe'));
+    }
     for (const parent of [container, ...plan.wrappers]) {
       for (const child of parent.children) {
-        if (NON_RENDERED.has(child.tagName)) continue;
-        if (child instanceof HTMLElement && !cells.has(child) && !child.classList.contains(GRID.wrapper)) {
-          if (child.getBoundingClientRect().height === 0 && !child.className.includes('bs-')) mark(child, GRID.wrapper);
-        }
+        if (NON_RENDERED.has(child.tagName) || !(child instanceof HTMLElement) || cells.has(child)) continue;
+        // Re-mark placeholders flattened on an earlier pass too: unmarked
+        // elements are cleaned up below, which would un-flatten them every
+        // other pass. A flattened placeholder has no box, so it still reads 0.
+        const ours = [...child.classList].some((c) => c.startsWith('bs-') && c !== GRID.wrapper);
+        if (!ours && child.getBoundingClientRect().height === 0) mark(child, GRID.wrapper);
       }
     }
     for (const [el, cls] of this.marked) {
@@ -120,9 +137,11 @@ export class Grid {
   private measure(container: HTMLElement, side: HTMLElement | null, settings: Settings): void {
     const viewport = root.clientWidth;
     const key = `${settings.columns}`;
+    // The side column often renders after the results; its arrival changes the room.
+    const sidePresent = isShown(side);
     const m = this.measuredFor;
-    if (m && m.container === container && m.viewport === viewport && m.settings === key) return;
-    this.measuredFor = { container, viewport, settings: key };
+    if (m && m.container === container && m.viewport === viewport && m.settings === key && m.side === sidePresent) return;
+    this.measuredFor = { container, viewport, settings: key, side: sidePresent };
 
     // Measure the engine's own layout: switch ours off for the duration. All of
     // this is synchronous, so the page never paints in between.
@@ -177,7 +196,7 @@ export class Grid {
   private clear(): void {
     if (!root.hasAttribute(LAYOUT_ATTR) && !this.marked.size) return;
     root.removeAttribute(LAYOUT_ATTR);
-    for (const [el, cls] of this.marked) el.classList.remove(cls, GRID.organic, GRID.inline, GRID.span);
+    for (const [el, cls] of this.marked) el.classList.remove(cls, GRID.organic, GRID.inline, GRID.span, GRID.empty);
     this.marked.clear();
     this.measuredFor = null;
   }
@@ -211,6 +230,9 @@ html[${LAYOUT_ATTR}] .${GRID.container} {
 }
 html[${LAYOUT_ATTR}] .${GRID.container}.${GRID.inline} { display: inline-grid !important; vertical-align: top; }
 html[${LAYOUT_ATTR}] .${GRID.wrapper} { display: contents !important; }
+/* Out of the grid flow so it takes no slot, but still laid out, so we can see
+   when the engine fills it and bring it back. */
+html[${LAYOUT_ATTR}] .${GRID.empty} { position: absolute !important; width: 1px; pointer-events: none; }
 html[${LAYOUT_ATTR}] :is(script, style, template, link, noscript).${GRID.wrapper} { display: none !important; }
 /* Rows: everything spans the full width except organic results. Row gaps come
    from cell margins, so the engine's empty placeholder nodes add no space. */
@@ -220,7 +242,11 @@ html[${LAYOUT_ATTR}] :is(.${GRID.container}, .${GRID.wrapper}) > .${GRID.organic
 html[${LAYOUT_ATTR}] .${GRID.cell} {
   width: auto !important; max-width: none !important; min-width: 0; margin: 0 0 var(--bs-gap) !important; box-sizing: border-box;
 }
-html[${LAYOUT_ATTR}] .${GRID.organic} { overflow-wrap: anywhere; }
+/* Cards in a row share its height so their edges line up; spanning modules keep their own. */
+html[${LAYOUT_ATTR}] .${GRID.organic} { overflow-wrap: anywhere; align-self: stretch; }
+/* The card's padding is the only space below the content: drop the engine's own. */
+html[${LAYOUT_ATTR}] .${GRID.organic} > :last-child,
+html[${LAYOUT_ATTR}] .${GRID.organic} > :last-child > :last-child { margin-bottom: 0 !important; padding-bottom: 0 !important; }
 /* Only media is capped. Capping every element would also squeeze carousel
    tracks, which are meant to be wider than the card, into stacked slides;
    content that really does not fit makes the cell span the row instead. */
