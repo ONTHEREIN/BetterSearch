@@ -7,13 +7,15 @@ export type CardStyle = 'card' | 'line';
 export type Density = 'compact' | 'comfortable';
 
 export interface Settings {
+  /** Schema version, for migrating stored settings. */
+  version: number;
   removeAds: boolean;
   /** Link straight to the destination and drop tracking parameters. */
   cleanLinks: boolean;
   blockAction: BlockAction;
   /** Rearrange results into a grid; off keeps the engine's own layout. */
   layout: boolean;
-  /** `auto` picks as many columns as the available width allows. */
+  /** Most columns to use; fewer when the window is too narrow. `auto` allows three. */
   columns: Columns;
   cardStyle: CardStyle;
   density: Density;
@@ -29,12 +31,15 @@ export interface Settings {
   subscriptions: Subscription[];
 }
 
+export const SETTINGS_VERSION = 2;
+
 export const DEFAULT_SETTINGS: Settings = {
+  version: SETTINGS_VERSION,
   removeAds: true,
   cleanLinks: true,
   blockAction: 'collapse',
   layout: true,
-  columns: 'auto',
+  columns: '2',
   cardStyle: 'card',
   density: 'compact',
   collapseAiAnswers: true,
@@ -46,8 +51,19 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const KEY = 'settings';
 
+/** Bring settings saved by an older version up to date. */
+export function migrateSettings(stored: Partial<Settings>): Partial<Settings> {
+  const next = { ...stored };
+  // v1 defaulted to `auto` columns, which meant three on wide windows. Two is
+  // the intended default; `auto` remains available as an explicit choice.
+  if ((next.version ?? 1) < 2 && next.columns === 'auto') next.columns = '2';
+  next.version = SETTINGS_VERSION;
+  return next;
+}
+
 export function loadSettings(store: KeyValueStore): Settings {
-  return { ...DEFAULT_SETTINGS, ...store.get<Partial<Settings>>(KEY, {}) };
+  const stored = store.get<Partial<Settings> | null>(KEY, null);
+  return { ...DEFAULT_SETTINGS, ...(stored ? migrateSettings(stored) : {}) };
 }
 
 export function saveSettings(store: KeyValueStore, settings: Settings): void {

@@ -133,6 +133,8 @@ export class Pager {
         const key = info ? (info.url ?? `${info.host}|${info.title}`) : null;
         if (key && this.seen.has(key)) continue;
         if (key) this.seen.add(key);
+        // A fetched page's styles would apply to this whole page; its scripts never run here.
+        for (const el of block.el.querySelectorAll('script, style, link, noscript')) el.remove();
         fresh.push(document.adoptNode(block.el));
       }
       this.footer!.before(divider, ...fresh);

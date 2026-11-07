@@ -10,6 +10,7 @@ export const CLASSES = {
   warning: 'bs-warning',
   aiCollapsed: 'bs-ai-collapsed',
   aiBar: 'bs-ai-bar',
+  moved: 'bs-moved-module',
   toast: 'bs-toast',
 } as const;
 

@@ -67,6 +67,7 @@ export const baiduAdapter: EngineAdapter = {
     return root.querySelector<HTMLElement>('#content_right');
   },
 
+  injectedModules: '',
   paginationSelector: '#page',
 
   nextPageUrl(root, base) {
@@ -110,6 +111,16 @@ export const baiduAdapter: EngineAdapter = {
     if (!link) return null;
     const url = realUrl(block.el);
     const host = url?.hostname ?? hostFromDisplayUrl(block.el.querySelector('[class*="showurl"]')?.textContent);
-    return { title: link.textContent?.trim() ?? '', href: link.getAttribute('href') ?? '', url: url?.href ?? null, host };
+    // Baidu badges sites it verified as official with a bare "官方" label.
+    const prominent = [...block.el.querySelectorAll('span, a, div')].some(
+      (el) => el.children.length === 0 && el.textContent?.trim() === '官方',
+    );
+    return {
+      title: link.textContent?.trim() ?? '',
+      href: link.getAttribute('href') ?? '',
+      url: url?.href ?? null,
+      host,
+      prominent,
+    };
   },
 };

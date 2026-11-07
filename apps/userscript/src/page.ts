@@ -67,6 +67,17 @@ export class Page {
     if (!this.adapter.matches(url)) return;
     const query = this.adapter.query(url);
 
+    if (this.settings.layout && this.adapter.injectedModules) {
+      // Out of the result and into a row of its own, so one card does not grow
+      // to hold a whole module.
+      // The engine re-injects the module when it no longer finds it in the
+      // result, so keep only the newest copy we moved out.
+      for (const el of document.querySelectorAll<HTMLElement>(this.adapter.injectedModules)) {
+        for (const old of document.querySelectorAll(`.${CLASSES.moved}`)) old.remove();
+        el.classList.add(CLASSES.moved);
+        el.parentElement?.after(el);
+      }
+    }
     const blocks = this.adapter.collectBlocks(document);
     const results = new Map<HTMLElement, Result>();
     for (const block of blocks) {

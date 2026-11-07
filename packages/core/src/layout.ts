@@ -1,3 +1,4 @@
+import type { Columns } from './settings';
 import type { Block } from './types';
 
 export interface GridPlan {
@@ -33,9 +34,24 @@ export function planGrid(container: HTMLElement, blocks: Block[]): GridPlan {
   return { cells, wrappers };
 }
 
-/** How many columns fit in `width` pixels for the `auto` setting. */
+/** How many columns fit in `width` pixels. */
 export function autoColumns(width: number): number {
   if (width >= 1320) return 3;
   if (width >= 880) return 2;
   return 1;
+}
+
+/** Widest the results area gets for a column count, so cards do not stretch. */
+const MAX_WIDTH_FOR_COLUMNS = [0, 760, 1200, 1400] as const;
+
+/**
+ * Columns and width of the results area. The setting is an upper bound
+ * (`auto` = 3): fewer columns are used when the room does not fit them. The
+ * area never gets narrower than the engine made it.
+ */
+export function gridSize(setting: Columns, room: number, original: number): { columns: number; width: number } {
+  const max = setting === 'auto' ? 3 : Number(setting);
+  const columns = Math.max(1, Math.min(max, autoColumns(room)));
+  const width = Math.round(Math.max(original, Math.min(room, MAX_WIDTH_FOR_COLUMNS[columns]!)));
+  return { columns, width };
 }

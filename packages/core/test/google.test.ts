@@ -99,6 +99,7 @@ describe('googleAdapter.extractResult', () => {
       href: expect.stringMatching(/^\/goto\?url=/),
       url: null,
       host: 'www.workbuddy.cn',
+      prominent: true,
     });
   });
 

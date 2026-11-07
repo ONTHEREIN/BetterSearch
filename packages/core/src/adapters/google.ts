@@ -99,6 +99,7 @@ export const googleAdapter: EngineAdapter = {
     return root.querySelector<HTMLElement>('#rhs');
   },
 
+  injectedModules: '',
   paginationSelector: '#botstuff [role="navigation"], #foot',
 
   nextPageUrl(root, base) {
@@ -153,6 +154,7 @@ export const googleAdapter: EngineAdapter = {
       // Results usually link through an opaque /goto redirect.
       url: /^https?:\/\//.test(href) ? href : null,
       host: hostFromDisplayUrl(block.el.querySelector('cite')?.textContent),
+      prominent: block.el.querySelectorAll('table a, [role="list"] a').length >= 3,
     };
   },
 };

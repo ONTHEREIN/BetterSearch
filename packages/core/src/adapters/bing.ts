@@ -45,6 +45,7 @@ export const bingAdapter: EngineAdapter = {
     return root.querySelector<HTMLElement>('#b_context');
   },
 
+  injectedModules: '#b_results > li.b_algo > .b_inline_ajax_rs',
   paginationSelector: '#b_results > li.b_pag',
 
   nextPageUrl(root, base) {
@@ -98,6 +99,7 @@ export const bingAdapter: EngineAdapter = {
     const href = link.getAttribute('href') ?? '';
     const url = /^https?:\/\//.test(href) && !/^https?:\/\/[^/]*bing\.com\//.test(href) ? href : null;
     const host = hostFromDisplayUrl(block.el.querySelector('cite')?.textContent) ?? (url ? new URL(url).hostname : null);
-    return { title: link.textContent?.trim() ?? '', href, url, host };
+    const prominent = block.el.matches('.b_vtl_deeplinks') || !!block.el.querySelector('.b_deep, .b_vlist2col');
+    return { title: link.textContent?.trim() ?? '', href, url, host, prominent };
   },
 };

@@ -32,6 +32,30 @@ describe('checkLookalike', () => {
     expect(checkLookalike(result, 'workbuddy chrome', [...page, result])).toBeNull();
   });
 
+  describe('next to a prominent result', () => {
+    const official = { title: '网易UU远程', host: 'uuyc.163.com', prominent: true };
+    const check = (host: string, title = 'UU远程 - 远程办公') =>
+      checkLookalike({ title, host }, 'uu远程', [official, { title, host }]);
+
+    it('flags the site name plus a copycat tail, without an "official" claim', () => {
+      expect(check('uuycpro.com.cn')).toEqual({
+        message: expect.stringContaining('uuyc.163.com'),
+        likelyOfficial: 'uuyc.163.com',
+      });
+      expect(check('uuyc-download.cn')).not.toBeNull();
+    });
+
+    it.each(['uuyc.163.com', 'uuyc.cn.163.com', 'pythonhosted.org', 'uuycommunity.com', 'remote.example.com'])(
+      'does not flag %s',
+      (host) => expect(check(host)).toBeNull(),
+    );
+
+    it('ignores prominent results with very short site names', () => {
+      const short = { title: 'QQ', host: 'im.qq.com', prominent: true };
+      expect(checkLookalike({ title: 'QQ', host: 'impro.cn' }, 'qq', [short])).toBeNull();
+    });
+  });
+
   it('flags exactly the three look-alikes in the real Bing results', () => {
     const blocks = bingAdapter.collectBlocks(loadFixture('bing', 'workbuddy.html'));
     const results = blocks.map((b) => bingAdapter.extractResult(b)).filter((r) => r !== null);

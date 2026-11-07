@@ -93,10 +93,9 @@
       <label class="row">
         <span class="label">列数</span>
         <select bind:value={settings.columns} onchange={commit}>
-          <option value="auto">自动（按窗口宽度）</option>
           <option value="1">1 列</option>
-          <option value="2">2 列</option>
-          <option value="3">3 列</option>
+          <option value="2">最多 2 列</option>
+          <option value="3">最多 3 列</option>
         </select>
       </label>
       <fieldset>

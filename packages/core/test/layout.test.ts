@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adapters, autoColumns, planGrid, type EngineAdapter } from '../src';
+import { adapters, autoColumns, gridSize, planGrid, type EngineAdapter } from '../src';
 import { loadFixture } from './fixtures';
 
 const byId = Object.fromEntries(adapters.map((a) => [a.id, a])) as Record<string, EngineAdapter>;
@@ -51,5 +51,19 @@ describe('autoColumns', () => {
     [1400, 3],
   ])('%ipx -> %i', (width, expected) => {
     expect(autoColumns(width)).toBe(expected);
+  });
+});
+
+describe('gridSize', () => {
+  it.each([
+    ['2', 1500, 650, { columns: 2, width: 1200 }],
+    ['2', 913, 650, { columns: 2, width: 913 }],
+    ['2', 700, 650, { columns: 1, width: 700 }],
+    ['3', 1500, 650, { columns: 3, width: 1400 }],
+    ['auto', 1500, 650, { columns: 3, width: 1400 }],
+    ['1', 1500, 650, { columns: 1, width: 760 }],
+    ['1', 1500, 900, { columns: 1, width: 900 }],
+  ] as const)('%s columns in %ipx (engine %ipx) -> %o', (setting, room, original, expected) => {
+    expect(gridSize(setting, room, original)).toEqual(expected);
   });
 });

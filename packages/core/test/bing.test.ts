@@ -72,6 +72,7 @@ describe('bingAdapter.extractResult', () => {
       href: 'https://www.workbuddy.cn/',
       url: 'https://www.workbuddy.cn/',
       host: 'www.workbuddy.cn',
+      prominent: false,
     });
   });
 });

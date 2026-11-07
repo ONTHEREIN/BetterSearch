@@ -66,6 +66,7 @@ describe('baiduAdapter.extractResult', () => {
       href: expect.stringMatching(/^http:\/\/www\.baidu\.com\/link\?url=/),
       url: 'https://copilot.tencent.com/work/',
       host: 'copilot.tencent.com',
+      prominent: true,
     });
   });
 });

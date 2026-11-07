@@ -1,4 +1,4 @@
-import { autoColumns, type GridPlan, type Settings } from '@bettersearch/core';
+import { gridSize, type GridPlan, type Settings } from '@bettersearch/core';
 
 export const LAYOUT_ATTR = 'data-bs-layout';
 
@@ -8,6 +8,8 @@ export const GRID = {
   wrapper: 'bs-flatten',
   cell: 'bs-cell',
   organic: 'bs-cell-organic',
+  span: 'bs-cell-span',
+  noBleed: 'bs-no-bleed',
   wide: 'bs-wide',
   wideParent: 'bs-wide-parent',
   side: 'bs-side',
@@ -16,9 +18,11 @@ export const GRID = {
 const SIDE_WIDTH = 300;
 const SIDE_GAP = 32;
 const RIGHT_PADDING = 24;
-const MAX_MAIN_WIDTH = 1400;
 
 const root = document.documentElement;
+
+/** Elements that never render; flattening them with display: contents would show their source text. */
+const NON_RENDERED = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'LINK', 'META', 'NOSCRIPT']);
 
 function setVar(name: string, value: string): void {
   if (root.style.getPropertyValue(name) !== value) root.style.setProperty(name, value);
@@ -28,11 +32,26 @@ function isShown(el: HTMLElement | null): el is HTMLElement {
   return !!el && el.getClientRects().length > 0 && !!el.textContent?.trim();
 }
 
+/**
+ * Engines pull some modules into their page gutter with negative side margins
+ * (Bing's encyclopedia cards use -20px). Inside a padded card that pushes them
+ * past its edge, so cancel those margins.
+ */
+function preventBleed(cell: HTMLElement): void {
+  for (const el of cell.querySelectorAll<HTMLElement>('div, ul, ol, section')) {
+    const style = getComputedStyle(el);
+    if (parseFloat(style.marginLeft) < 0 || parseFloat(style.marginRight) < 0) el.classList.add(GRID.noBleed);
+  }
+}
+
 /** Turns the results container into a grid and makes room for it. */
 export class Grid {
   /** Every element we put a class on, so turning the layout off can undo it. */
   private readonly marked = new Map<HTMLElement, string>();
   private measuredFor: { container: HTMLElement; viewport: number; settings: string } | null = null;
+  /** Results whose content does not fit one column, e.g. sitelinks in two columns. */
+  private readonly spanning = new WeakSet<HTMLElement>();
+  private readonly bleedChecked = new WeakSet<HTMLElement>();
 
   apply(
     container: HTMLElement | null,
@@ -65,6 +84,7 @@ export class Grid {
     const cells = new Set(plan.cells.values());
     for (const parent of [container, ...plan.wrappers]) {
       for (const child of parent.children) {
+        if (NON_RENDERED.has(child.tagName)) continue;
         if (child instanceof HTMLElement && !cells.has(child) && !child.classList.contains(GRID.wrapper)) {
           if (child.getBoundingClientRect().height === 0 && !child.className.includes('bs-')) mark(child, GRID.wrapper);
         }
@@ -78,6 +98,18 @@ export class Grid {
     }
 
     this.measure(container, side, settings);
+
+    // Some results carry fixed-width content wider than a column. Give those a
+    // full row; once given, keep it so the cell does not flip back and forth.
+    for (const cell of plan.cells.values()) {
+      if (!cell.classList.contains(GRID.organic)) continue;
+      if (!this.spanning.has(cell) && cell.scrollWidth > cell.clientWidth + 4) this.spanning.add(cell);
+      cell.classList.toggle(GRID.span, this.spanning.has(cell));
+      if (!this.bleedChecked.has(cell)) {
+        this.bleedChecked.add(cell);
+        preventBleed(cell);
+      }
+    }
   }
 
   /** Re-measure on the next apply, e.g. after a resize. */
@@ -115,8 +147,7 @@ export class Grid {
     root.setAttribute(LAYOUT_ATTR, '');
 
     const room = viewport - box.left - RIGHT_PADDING - (hasSide ? SIDE_WIDTH + SIDE_GAP : 0);
-    const mainWidth = Math.round(Math.min(MAX_MAIN_WIDTH, Math.max(box.width, room)));
-    const columns = settings.columns === 'auto' ? autoColumns(mainWidth) : Number(settings.columns);
+    const { columns, width: mainWidth } = gridSize(settings.columns, room, box.width);
     setVar('--bs-main-w', `${mainWidth}px`);
     setVar('--bs-cols', String(columns));
     for (const el of chain) {
@@ -146,7 +177,7 @@ export class Grid {
   private clear(): void {
     if (!root.hasAttribute(LAYOUT_ATTR) && !this.marked.size) return;
     root.removeAttribute(LAYOUT_ATTR);
-    for (const [el, cls] of this.marked) el.classList.remove(cls, GRID.organic, GRID.inline);
+    for (const [el, cls] of this.marked) el.classList.remove(cls, GRID.organic, GRID.inline, GRID.span);
     this.marked.clear();
     this.measuredFor = null;
   }
@@ -180,19 +211,27 @@ html[${LAYOUT_ATTR}] .${GRID.container} {
 }
 html[${LAYOUT_ATTR}] .${GRID.container}.${GRID.inline} { display: inline-grid !important; vertical-align: top; }
 html[${LAYOUT_ATTR}] .${GRID.wrapper} { display: contents !important; }
+html[${LAYOUT_ATTR}] :is(script, style, template, link, noscript).${GRID.wrapper} { display: none !important; }
 /* Rows: everything spans the full width except organic results. Row gaps come
    from cell margins, so the engine's empty placeholder nodes add no space. */
 html[${LAYOUT_ATTR}] :is(.${GRID.container}, .${GRID.wrapper}) > * { grid-column: 1 / -1; }
 html[${LAYOUT_ATTR}] :is(.${GRID.container}, .${GRID.wrapper}) > .${GRID.organic} { grid-column: auto; }
+html[${LAYOUT_ATTR}] :is(.${GRID.container}, .${GRID.wrapper}) > .${GRID.organic}.${GRID.span} { grid-column: 1 / -1; }
 html[${LAYOUT_ATTR}] .${GRID.cell} {
   width: auto !important; max-width: none !important; min-width: 0; margin: 0 0 var(--bs-gap) !important; box-sizing: border-box;
 }
 html[${LAYOUT_ATTR}] .${GRID.organic} { overflow-wrap: anywhere; }
-html[${LAYOUT_ATTR}] .${GRID.organic} * { max-width: 100%; }
+/* Only media is capped. Capping every element would also squeeze carousel
+   tracks, which are meant to be wider than the card, into stacked slides;
+   content that really does not fit makes the cell span the row instead. */
+html[${LAYOUT_ATTR}] .${GRID.organic} :is(img, video) { max-width: 100%; height: auto; }
+/* Engines give the URL line a fixed one-line height; wrapping would overlap the title. */
+html[${LAYOUT_ATTR}] .${GRID.organic} :has(> cite) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html[${LAYOUT_ATTR}][data-bs-style='card'] .${GRID.organic} {
   padding: var(--bs-pad) !important; border: 1px solid var(--bs-line); border-radius: 10px; background: var(--bs-card);
 }
 html[${LAYOUT_ATTR}][data-bs-style='line'] .${GRID.organic} { padding: 12px 0 !important; border-bottom: 1px solid var(--bs-line); }
+html[${LAYOUT_ATTR}] .${GRID.organic} .${GRID.noBleed} { margin-left: 0 !important; margin-right: 0 !important; }
 html[${LAYOUT_ATTR}] .${GRID.organic} :is(h2, h3) {
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }

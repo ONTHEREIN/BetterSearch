@@ -25,6 +25,11 @@ export interface ResultInfo {
   url: string | null;
   /** Hostname of the destination, or of the URL the engine displays. */
   host: string | null;
+  /**
+   * The engine presents this result as the site itself: sitelinks on Google
+   * and Bing, Baidu's "官方" badge. Usually the official site.
+   */
+  prominent: boolean;
 }
 
 export interface EngineAdapter {
@@ -46,6 +51,12 @@ export interface EngineAdapter {
   sideColumn(root: ParentNode): HTMLElement | null;
   /** Absolute URL of the next results page, or null on the last page. */
   nextPageUrl(root: ParentNode, base: string): string | null;
+  /**
+   * Modules the engine injects inside a result after the page loaded, matched
+   * as direct children of the result (e.g. Bing's related searches after
+   * returning from a click). With the grid on they are moved out, after it.
+   */
+  injectedModules: string;
   /** The engine's own page links, hidden while results load automatically. */
   paginationSelector: string;
   /** The visible search bar, where the settings button goes. */
