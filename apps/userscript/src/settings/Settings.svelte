@@ -157,6 +157,14 @@
       <span>点击结果时直接打开目标网站，并去掉链接里的跟踪参数</span>
     </label>
     <p class="hint">Google 的结果链接是加密跳转，暂时只能去掉点击上报。</p>
+    <label class="row">
+      <span class="label">打开方式</span>
+      <select bind:value={settings.openLinks} onchange={commit}>
+        <option value="engine">跟随搜索引擎</option>
+        <option value="new">总是在新标签页打开</option>
+        <option value="same">总是在当前页打开</option>
+      </select>
+    </label>
   </section>
 
   <section>

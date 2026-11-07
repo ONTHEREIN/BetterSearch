@@ -12,6 +12,9 @@ import {
 import { Grid } from './layout';
 import { CLASSES } from './style';
 
+/** The `target` a link had before we changed it, so `engine` can restore it. */
+const ORIGINAL_TARGET = 'data-bs-target';
+
 const BLOCK_ICON =
   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M5.6 5.6l12.8 12.8"></path></svg>';
 
@@ -128,6 +131,7 @@ export class Page {
   private decorate({ el, info }: Result, query: string, page: ResultInfo[]): void {
     el.classList.add(CLASSES.result);
     if (this.settings.cleanLinks) this.cleanLinks(el, info);
+    this.setLinkTargets(el);
     if (!info.host) return;
     this.ensureBlockButton(el, info.host);
     const warning = checkLookalike(info, query, page);
@@ -148,6 +152,21 @@ export class Page {
     for (const link of result.querySelectorAll<HTMLAnchorElement>('a[href]')) {
       link.removeAttribute('ping');
       if (target && link.getAttribute('href') === info.href) link.setAttribute('href', target);
+    }
+  }
+
+  private setLinkTargets(result: HTMLElement): void {
+    const mode = this.settings.openLinks;
+    for (const link of result.querySelectorAll<HTMLAnchorElement>('a[href]')) {
+      if (mode === 'engine' && !link.hasAttribute(ORIGINAL_TARGET)) continue;
+      if (/^(#|javascript:)/i.test(link.getAttribute('href')!)) continue;
+      if (!link.hasAttribute(ORIGINAL_TARGET)) link.setAttribute(ORIGINAL_TARGET, link.getAttribute('target') ?? '');
+      const original = link.getAttribute(ORIGINAL_TARGET)!;
+      const target = mode === 'new' ? '_blank' : mode === 'same' ? '' : original;
+      if ((link.getAttribute('target') ?? '') === target) continue;
+      if (target) link.setAttribute('target', target);
+      else link.removeAttribute('target');
+      if (target === '_blank' && !link.relList.contains('noopener')) link.relList.add('noopener');
     }
   }
 

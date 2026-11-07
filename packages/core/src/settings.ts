@@ -5,6 +5,8 @@ export type BlockAction = 'collapse' | 'hide';
 export type Columns = 'auto' | '1' | '2' | '3';
 export type CardStyle = 'card' | 'line';
 export type Density = 'compact' | 'comfortable';
+/** Where result links open; `engine` keeps each engine's own behaviour. */
+export type OpenLinks = 'engine' | 'new' | 'same';
 
 export interface Settings {
   /** Schema version, for migrating stored settings. */
@@ -12,6 +14,7 @@ export interface Settings {
   removeAds: boolean;
   /** Link straight to the destination and drop tracking parameters. */
   cleanLinks: boolean;
+  openLinks: OpenLinks;
   blockAction: BlockAction;
   /** Rearrange results into a grid; off keeps the engine's own layout. */
   layout: boolean;
@@ -37,6 +40,7 @@ export const DEFAULT_SETTINGS: Settings = {
   version: SETTINGS_VERSION,
   removeAds: true,
   cleanLinks: true,
+  openLinks: 'engine',
   blockAction: 'collapse',
   layout: true,
   columns: '2',

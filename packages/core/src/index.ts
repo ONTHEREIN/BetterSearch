@@ -30,6 +30,7 @@ export {
   type CardStyle,
   type Columns,
   type Density,
+  type OpenLinks,
   type Settings,
 } from './settings';
 export { hostFromDisplayUrl, registrableDomain, siteOf, stripWww } from './url';
