@@ -48,6 +48,7 @@ BetterSearch 是一个**油猴脚本（userscript）**，增强 Google、Bing、
 开发时要注意的两点：
 
 - **开发模式**（`pnpm dev`，安装 `__vite-plugin-monkey.install.user.js`）是在页面里插入 `<script>`，从 `http://127.0.0.1:5173` 加载源码。新版 Edge 和 Chrome 要求每个网站单独授权「本机回环地址」（loopback）权限，这一项和「局域网」权限是分开的。没有授权时，入口文件可能还能从缓存里拿到，后面的模块会全部失败，脚本看起来就像没有运行。报错是 `Permission was denied for this request to access the loopback address space`。解决办法是在 `edge://settings/content/siteDetails?site=…` 里给这个网站开权限，或者改用打包版。
+- 开发版加载器通过 `document['__monkeyWindow-<哈希>']` 把 GM API 交给页面里的模块，哈希来自脚本头信息。**改了 `vite.config.ts` 里的 `userscript` 头信息之后，必须重新安装开发版脚本**，否则 key 对不上，页面里拿不到 GM API，报 `GM_getValue is not a function`，脚本不运行。带 key 的客户端模块是预构建依赖，Vite 给它的响应头是 `immutable`，地址上的 `?v=` 不变，浏览器就一直用旧 key。所以 `pnpm dev` 用的是 `vite --force`，每次启动都换一个 `?v=`，改完头信息后重启 dev server 就行。
 - 脚本在 document-start 运行，这时**连 `<html>` 都可能还没生成**。入口会等 `<html>` 出现以后再启动，模块顶层也不能缓存 `document.documentElement`。
 
 ## 4. 架构
