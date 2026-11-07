@@ -129,4 +129,16 @@ function run(adapter: EngineAdapter): void {
 }
 
 const adapter = adapterForHost(location.hostname);
-if (adapter) run(adapter);
+if (adapter) {
+  // At document-start the script can run before the parser has created <html>,
+  // and everything here needs it.
+  if (document.documentElement) {
+    run(adapter);
+  } else {
+    new MutationObserver((_, observer) => {
+      if (!document.documentElement) return;
+      observer.disconnect();
+      run(adapter);
+    }).observe(document, { childList: true });
+  }
+}

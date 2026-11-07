@@ -45,6 +45,11 @@ BetterSearch 是一个**油猴脚本（userscript）**，增强 Google、Bing、
 | 包管理 | pnpm workspace | |
 | CI | GitHub Actions：lint、test、build | |
 
+开发时要注意的两点：
+
+- **开发模式**（`pnpm dev`，安装 `__vite-plugin-monkey.install.user.js`）是在页面里插入 `<script>`，从 `http://127.0.0.1:5173` 加载源码。新版 Edge 和 Chrome 要求每个网站单独授权「本机回环地址」（loopback）权限，这一项和「局域网」权限是分开的。没有授权时，入口文件可能还能从缓存里拿到，后面的模块会全部失败，脚本看起来就像没有运行。报错是 `Permission was denied for this request to access the loopback address space`。解决办法是在 `edge://settings/content/siteDetails?site=…` 里给这个网站开权限，或者改用打包版。
+- 脚本在 document-start 运行，这时**连 `<html>` 都可能还没生成**。入口会等 `<html>` 出现以后再启动，模块顶层也不能缓存 `document.documentElement`。
+
 ## 4. 架构
 
 ```
@@ -186,7 +191,9 @@ core 层只通过一层很薄的接口访问平台能力（`KeyValueStore`，以
 - 设计稿：claude.ai artifact `8eAGvTe2JHhXtqJHKeQsqS`（「第二轮：搜索结果区」页面）。
 - 实现（`core/src/layout.ts` 和 `userscript/src/layout.ts`）：
   - 每个区块的「格子」，是从它自身往上、仍然不包含其他区块的最高一层祖先元素。格子外面同时包住多个区块的包装层，以及引擎留下的高度为 0 的占位节点，都设成 `display: contents`。
-  - 宽度在**暂时关掉本脚本样式**的状态下测量（整个过程是同步的，不会闪烁）。结果区宽度 = 视口宽度 − 结果区左边距 − 300px 侧栏 − 32px 间距 − 24px 右边距。右侧栏压窄到 300px，用 `transform` 平移到最右边。如果结果区和侧栏的共同父元素放不下（比如百度的浮动布局），就把父元素也加宽。
+  - 宽度在**暂时关掉本脚本样式**的状态下测量（整个过程是同步的，不会闪烁）。结果区宽度 = 视口宽度 − 结果区左边距 − 300px 侧栏 − 32px 间距 − 24px 右边距。右侧栏压窄到 300px。如果结果区和侧栏的共同父元素放不下（比如百度的浮动布局），就把父元素也加宽。
+  - 结果区和侧栏作为一个整体，用 `transform` 平移到视口正中。平移量要在**加宽之后**再量一次实际位置来算：百度在宽屏下用 `margin: auto` 居中 `#container`，加宽它会让所有内容一起移动。
+  - 没有可见内容的非普通模块（还没加载，或者被引擎隐藏了）设成 `position: absolute`，不占网格位置，否则会拆开同一行的两张卡片。判断用 `Range` 量格子里全部内容的高度，文字也算在内，因为我们插入的翻页分隔条里只有文字。
   - 原本是 `inline-block` 的结果容器（Bing），改用 `inline-grid`，这样侧栏才不会被挤到下一行。
   - 被屏蔽、被折叠的结果，以及插入的提示条，都作用在格子上，而不是区块本身。
 - 和设计不同的地方：`from` 这个参数太通用，很多网站拿它当正常参数用，所以去跟踪参数时**不去掉它**。

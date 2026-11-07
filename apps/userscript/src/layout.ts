@@ -14,19 +14,24 @@ export const GRID = {
   wide: 'bs-wide',
   wideParent: 'bs-wide-parent',
   side: 'bs-side',
+  shift: 'bs-shift',
 } as const;
+
+/** Classes that depend on the measured room; dropped and set again on each measure. */
+const MEASURED: ReadonlySet<string> = new Set([GRID.wide, GRID.wideParent, GRID.side, GRID.shift]);
 
 const SIDE_WIDTH = 300;
 const SIDE_GAP = 32;
 const RIGHT_PADDING = 24;
 
-const root = document.documentElement;
+/** Looked up on use: at document-start the script can run before <html> exists. */
+const root = () => document.documentElement;
 
 /** Elements that never render; flattening them with display: contents would show their source text. */
 const NON_RENDERED = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'LINK', 'META', 'NOSCRIPT']);
 
 function setVar(name: string, value: string): void {
-  if (root.style.getPropertyValue(name) !== value) root.style.setProperty(name, value);
+  if (root().style.getPropertyValue(name) !== value) root().style.setProperty(name, value);
 }
 
 function isShown(el: HTMLElement | null): el is HTMLElement {
@@ -70,9 +75,9 @@ export class Grid {
       this.clear();
       return;
     }
-    root.setAttribute(LAYOUT_ATTR, '');
-    root.dataset.bsStyle = settings.cardStyle;
-    root.dataset.bsDensity = settings.density;
+    root().setAttribute(LAYOUT_ATTR, '');
+    root().dataset.bsStyle = settings.cardStyle;
+    root().dataset.bsDensity = settings.density;
 
     const keep = new Set<HTMLElement>();
     const mark = (el: HTMLElement, cls: string) => {
@@ -90,11 +95,14 @@ export class Grid {
     const cells = new Set(plan.cells.values());
     // An empty module cell (nothing rendered yet, or hidden by the engine) would
     // take a full row too and split the results around it.
+    const range = document.createRange();
     for (const [blockEl, cell] of plan.cells) {
       if (organic.has(blockEl) || cell.classList.contains('bs-ad')) continue;
-      // Measured through the children: a flattened cell has no box of its own,
-      // and must come back once the engine fills it.
-      const rendered = [...cell.children].some((c) => c.getBoundingClientRect().height > 0);
+      // Measured through its contents, text included (our page dividers hold
+      // only text): a flattened cell has no box of its own, and must come back
+      // once the engine fills it.
+      range.selectNodeContents(cell);
+      const rendered = range.getBoundingClientRect().height > 0;
       cell.classList.toggle(GRID.empty, !rendered && !cell.querySelector('img, video, iframe'));
     }
     for (const parent of [container, ...plan.wrappers]) {
@@ -108,7 +116,7 @@ export class Grid {
       }
     }
     for (const [el, cls] of this.marked) {
-      if (!keep.has(el) && cls !== GRID.wide && cls !== GRID.wideParent && cls !== GRID.side) {
+      if (!keep.has(el) && !MEASURED.has(cls)) {
         el.classList.remove(cls, GRID.organic);
         this.marked.delete(el);
       }
@@ -135,7 +143,7 @@ export class Grid {
   }
 
   private measure(container: HTMLElement, side: HTMLElement | null, settings: Settings): void {
-    const viewport = root.clientWidth;
+    const viewport = root().clientWidth;
     const key = `${settings.columns}`;
     // The side column often renders after the results; its arrival changes the room.
     const sidePresent = isShown(side);
@@ -146,12 +154,12 @@ export class Grid {
     // Measure the engine's own layout: switch ours off for the duration. All of
     // this is synchronous, so the page never paints in between.
     for (const [el, cls] of this.marked) {
-      if (cls === GRID.wide || cls === GRID.wideParent || cls === GRID.side) {
+      if (MEASURED.has(cls)) {
         el.classList.remove(cls);
         this.marked.delete(el);
       }
     }
-    root.removeAttribute(LAYOUT_ATTR);
+    root().removeAttribute(LAYOUT_ATTR);
     const box = container.getBoundingClientRect();
     // An inline-block results list (Bing) shares a line with the side column;
     // a block-level grid would push the side column below it.
@@ -163,7 +171,7 @@ export class Grid {
       if (Math.abs(el.getBoundingClientRect().width - box.width) > 2) break;
       chain.push(el);
     }
-    root.setAttribute(LAYOUT_ATTR, '');
+    root().setAttribute(LAYOUT_ATTR, '');
 
     const room = viewport - box.left - RIGHT_PADDING - (hasSide ? SIDE_WIDTH + SIDE_GAP : 0);
     const { columns, width: mainWidth } = gridSize(settings.columns, room, box.width);
@@ -173,12 +181,11 @@ export class Grid {
       el.classList.add(GRID.wide);
       this.marked.set(el, GRID.wide);
     }
-    if (!hasSide) return;
 
     // A parent holding both columns may be too narrow for the wider results,
     // which would push a floated side column below them.
     const parent = chain[chain.length - 1]?.parentElement;
-    if (parent?.contains(side)) {
+    if (hasSide && parent?.contains(side)) {
       const needed = Math.round(box.left + mainWidth + SIDE_GAP + SIDE_WIDTH - parent.getBoundingClientRect().left);
       if (parent.getBoundingClientRect().width < needed) {
         setVar('--bs-parent-w', `${needed}px`);
@@ -186,16 +193,31 @@ export class Grid {
         this.marked.set(parent, GRID.wideParent);
       }
     }
-    side.classList.add(GRID.side);
-    this.marked.set(side, GRID.side);
+    if (hasSide) {
+      side.classList.add(GRID.side);
+      this.marked.set(side, GRID.side);
+    }
+
+    // Centre the results and the side column together. Engines align the
+    // results with their logo, which leaves the widened page lopsided. Measured
+    // after widening: a parent centred with auto margins (Baidu on wide
+    // screens) moves everything when it gets wider.
+    const total = mainWidth + (hasSide ? SIDE_GAP + SIDE_WIDTH : 0);
+    const left = Math.round(Math.max(RIGHT_PADDING, (viewport - total) / 2));
+    setVar('--bs-main-shift', '0px');
     setVar('--bs-side-shift', '0px');
-    const shift = Math.round(box.left + mainWidth + SIDE_GAP - side.getBoundingClientRect().left);
-    setVar('--bs-side-shift', `${shift}px`);
+    const outer = chain[chain.length - 1];
+    if (outer) {
+      outer.classList.add(GRID.shift);
+      this.marked.set(outer, GRID.shift);
+    }
+    setVar('--bs-main-shift', `${left - Math.round(container.getBoundingClientRect().left)}px`);
+    if (hasSide) setVar('--bs-side-shift', `${left + mainWidth + SIDE_GAP - Math.round(side.getBoundingClientRect().left)}px`);
   }
 
   private clear(): void {
-    if (!root.hasAttribute(LAYOUT_ATTR) && !this.marked.size) return;
-    root.removeAttribute(LAYOUT_ATTR);
+    if (!root().hasAttribute(LAYOUT_ATTR) && !this.marked.size) return;
+    root().removeAttribute(LAYOUT_ATTR);
     for (const [el, cls] of this.marked) el.classList.remove(cls, GRID.organic, GRID.inline, GRID.span, GRID.empty);
     this.marked.clear();
     this.measuredFor = null;
@@ -213,6 +235,7 @@ html[${LAYOUT_ATTR}][data-bs-density='comfortable'] { --bs-gap: 16px; --bs-pad: 
 html[${LAYOUT_ATTR}][data-bs-theme='dark'] { --bs-line: rgba(255, 255, 255, .12); --bs-card: rgba(255, 255, 255, .04); }
 
 html[${LAYOUT_ATTR}] .${GRID.wide} { width: var(--bs-main-w) !important; max-width: none !important; min-width: 0 !important; }
+html[${LAYOUT_ATTR}] .${GRID.shift} { transform: translateX(var(--bs-main-shift, 0px)); }
 html[${LAYOUT_ATTR}] .${GRID.wideParent} { width: var(--bs-parent-w) !important; max-width: none !important; }
 html[${LAYOUT_ATTR}] .${GRID.side} {
   width: ${SIDE_WIDTH}px !important; min-width: 0 !important; max-width: ${SIDE_WIDTH}px !important;
