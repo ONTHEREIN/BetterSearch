@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { removeRule, type Settings, type Subscription } from '@bettersearch/core';
+  import { removeRule, t, type Settings, type Subscription } from '@bettersearch/core';
   import type { SubscriptionStatus } from './panel';
 
   interface Props {
@@ -59,10 +59,10 @@
 
   function describe(sub: Subscription, _version: number): string {
     const status = subscriptionStatus(sub);
-    if (status.error && !status.fetchedAt) return `更新失败：${status.error}`;
-    if (!status.fetchedAt) return '尚未下载';
+    if (status.error && !status.fetchedAt) return t('subs.failed', { error: status.error });
+    if (!status.fetchedAt) return t('subs.notFetched');
     const when = new Date(status.fetchedAt).toLocaleString();
-    return `${status.ruleCount} 条规则，更新于 ${when}${status.error ? '（最近一次更新失败）' : ''}`;
+    return t('subs.status', { count: status.ruleCount, when }) + (status.error ? t('subs.lastFailed') : '');
   }
 
   function onkeydown(event: KeyboardEvent) {
@@ -75,8 +75,8 @@
 <div class="backdrop" onclick={onclose} aria-hidden="true"></div>
 <aside class="drawer" aria-labelledby="bs-title">
   <header>
-    <h2 id="bs-title">BetterSearch 设置</h2>
-    <button type="button" class="icon" aria-label="关闭设置" onclick={onclose}>
+    <h2 id="bs-title">{t('settings.title')}</h2>
+    <button type="button" class="icon" aria-label={t('settings.close')} onclick={onclose}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
         ><path d="M6 6l12 12M18 6L6 18"></path></svg
       >
@@ -84,155 +84,156 @@
   </header>
 
   <section>
-    <h3>外观</h3>
+    <h3>{t('appearance.title')}</h3>
     <label class="row">
       <input type="checkbox" bind:checked={settings.layout} onchange={commit} />
-      <span>使用多列卡片布局</span>
+      <span>{t('appearance.layout')}</span>
     </label>
     {#if settings.layout}
       <label class="row">
-        <span class="label">列数</span>
+        <span class="label">{t('appearance.columns')}</span>
         <select bind:value={settings.columns} onchange={commit}>
-          <option value="1">1 列</option>
-          <option value="2">最多 2 列</option>
-          <option value="3">最多 3 列</option>
+          <option value="1">{t('appearance.columns1')}</option>
+          <option value="2">{t('appearance.columns2')}</option>
+          <option value="3">{t('appearance.columns3')}</option>
         </select>
       </label>
       <fieldset>
-        <legend>主题</legend>
+        <legend>{t('appearance.theme')}</legend>
         <label class="row">
           <input type="radio" name="bs-style" value="card" bind:group={settings.cardStyle} onchange={commit} />
-          <span>描边卡片</span>
+          <span>{t('appearance.card')}</span>
         </label>
         <label class="row">
           <input type="radio" name="bs-style" value="raised" bind:group={settings.cardStyle} onchange={commit} />
-          <span>浮起卡片</span>
+          <span>{t('appearance.raised')}</span>
         </label>
         <label class="row">
           <input type="radio" name="bs-style" value="line" bind:group={settings.cardStyle} onchange={commit} />
-          <span>细线分隔</span>
+          <span>{t('appearance.line')}</span>
         </label>
       </fieldset>
       <fieldset>
-        <legend>密度</legend>
+        <legend>{t('appearance.density')}</legend>
         <label class="row">
           <input type="radio" name="bs-density" value="compact" bind:group={settings.density} onchange={commit} />
-          <span>紧凑</span>
+          <span>{t('appearance.compact')}</span>
         </label>
         <label class="row">
           <input type="radio" name="bs-density" value="comfortable" bind:group={settings.density} onchange={commit} />
-          <span>宽松</span>
+          <span>{t('appearance.comfortable')}</span>
         </label>
       </fieldset>
     {/if}
     <label class="row">
       <input type="checkbox" bind:checked={settings.collapseAiAnswers} onchange={commit} />
-      <span>把搜索引擎自带的 AI 回答折叠成一行</span>
+      <span>{t('appearance.collapseAi')}</span>
     </label>
   </section>
 
   <section>
-    <h3>翻页</h3>
+    <h3>{t('paging.title')}</h3>
     <label class="row">
       <input type="checkbox" bind:checked={settings.autoPage} onchange={commit} />
-      <span>滚动到底部时自动加载下一页</span>
+      <span>{t('paging.auto')}</span>
     </label>
     {#if settings.autoPage}
       <label class="row">
-        <span class="label">自动加载</span>
+        <span class="label">{t('paging.limitBefore')}</span>
         <input class="number" type="number" min="1" max="20" bind:value={settings.autoPageLimit} onchange={commit} />
-        <span>页后，改为点击按钮加载</span>
+        <span>{t('paging.limitAfter')}</span>
       </label>
     {/if}
   </section>
 
   <section>
-    <h3>广告</h3>
+    <h3>{t('ads.title')}</h3>
     <label class="row">
       <input type="checkbox" bind:checked={settings.removeAds} onchange={commit} />
-      <span>去除搜索结果中的广告</span>
+      <span>{t('ads.remove')}</span>
     </label>
   </section>
 
   <section>
-    <h3>链接</h3>
+    <h3>{t('links.title')}</h3>
     <label class="row">
       <input type="checkbox" bind:checked={settings.cleanLinks} onchange={commit} />
-      <span>点击结果时直接打开目标网站，并去掉链接里的跟踪参数</span>
+      <span>{t('links.clean')}</span>
     </label>
-    <p class="hint">Google 的结果链接是加密跳转，暂时只能去掉点击上报。</p>
+    <p class="hint">{t('links.googleHint')}</p>
     <label class="row">
-      <span class="label">打开方式</span>
+      <span class="label">{t('links.open')}</span>
       <select bind:value={settings.openLinks} onchange={commit}>
-        <option value="engine">跟随搜索引擎</option>
-        <option value="new">总是在新标签页打开</option>
-        <option value="same">总是在当前页打开</option>
+        <option value="engine">{t('links.openEngine')}</option>
+        <option value="new">{t('links.openNew')}</option>
+        <option value="same">{t('links.openSame')}</option>
       </select>
     </label>
   </section>
 
   <section>
-    <h3>屏蔽</h3>
+    <h3>{t('blocking.title')}</h3>
     <fieldset>
-      <legend>被屏蔽的结果</legend>
+      <legend>{t('blocking.action')}</legend>
       <label class="row">
         <input type="radio" name="bs-action" value="collapse" bind:group={settings.blockAction} onchange={commit} />
-        <span>折叠成一行，可以点击显示</span>
+        <span>{t('blocking.collapse')}</span>
       </label>
       <label class="row">
         <input type="radio" name="bs-action" value="hide" bind:group={settings.blockAction} onchange={commit} />
-        <span>完全隐藏</span>
+        <span>{t('blocking.hide')}</span>
       </label>
     </fieldset>
 
     {#if blockedSites.length}
-      <ul class="sites" aria-label="已屏蔽的网站">
+      <ul class="sites" aria-label={t('blocking.sites')}>
         {#each blockedSites as host (host)}
           <li>
             <span class="host">{host}</span>
-            <button type="button" class="link" onclick={() => unblock(host)}>取消屏蔽</button>
+            <button type="button" class="link" onclick={() => unblock(host)}>{t('blocking.unblock')}</button>
           </li>
         {/each}
       </ul>
     {:else}
-      <p class="hint">还没有屏蔽任何网站。把鼠标移到搜索结果上，点右上角的图标就能屏蔽它所在的网站。</p>
+      <p class="hint">{t('blocking.none')}</p>
     {/if}
 
-    <h3 class="sub">订阅列表</h3>
+    <h3 class="sub">{t('subs.title')}</h3>
     {#each settings.subscriptions as sub, i (sub.urls[0])}
       <div class="subscription">
         <label class="row">
           <input type="checkbox" bind:checked={sub.enabled} onchange={commit} />
           <span class="host">{sub.urls[0]}</span>
         </label>
-        <p class="hint">{describe(sub, statusVersion)}{sub.urls.length > 1 ? `，另有 ${sub.urls.length - 1} 个镜像` : ''}</p>
-        <button type="button" class="link" onclick={() => removeSubscription(i)}>删除</button>
+        <p class="hint">{describe(sub, statusVersion)}{sub.urls.length > 1 ? t('subs.mirrors', { count: sub.urls.length - 1 }) : ''}</p>
+        <button type="button" class="link" onclick={() => removeSubscription(i)}>{t('subs.remove')}</button>
       </div>
     {/each}
     <div class="row add">
-      <label class="visually-hidden" for="bs-new-sub">订阅地址</label>
+      <label class="visually-hidden" for="bs-new-sub">{t('subs.address')}</label>
       <input
         id="bs-new-sub"
         class="text"
         type="url"
-        placeholder="订阅地址，多个镜像用空格分隔"
+        placeholder={t('subs.placeholder')}
         bind:value={newSubscription}
         onkeydown={(e) => e.key === 'Enter' && addSubscription()}
       />
-      <button type="button" class="link" onclick={addSubscription}>添加</button>
+      <button type="button" class="link" onclick={addSubscription}>{t('subs.add')}</button>
     </div>
     {#if settings.subscriptions.length}
       <button type="button" class="link" disabled={refreshing} onclick={refreshAll}>
-        {refreshing ? '正在更新…' : '立即更新全部订阅'}
+        {refreshing ? t('subs.refreshing') : t('subs.refresh')}
       </button>
     {/if}
-    <p class="hint">支持 uBlacklist 格式的列表，每 24 小时自动更新。第一次访问新的地址时，脚本管理器会请你确认。</p>
+    <p class="hint">{t('subs.hint')}</p>
 
     <label class="stack">
-      <span>屏蔽规则</span>
+      <span>{t('rules.title')}</span>
       <textarea rows="8" spellcheck="false" bind:value={settings.rules} oninput={commit}></textarea>
     </label>
-    <p class="hint">每行一条，兼容 uBlacklist 语法，例如 <code>*://*.example.com/*</code>、<code>example.com</code> 或正则 <code>/keyword/</code>。以 <code>@</code> 开头的规则表示不屏蔽。</p>
+    <!-- Our own constant markup, not user input. -->
+    <p class="hint">{@html t('rules.hint')}</p>
   </section>
 </aside>
 

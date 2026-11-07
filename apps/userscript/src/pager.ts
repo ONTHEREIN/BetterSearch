@@ -1,4 +1,4 @@
-import type { EngineAdapter, Settings } from '@bettersearch/core';
+import { t, type EngineAdapter, type Settings } from '@bettersearch/core';
 
 export function pagerCss(paginationSelector: string): string {
   return `
@@ -126,7 +126,7 @@ export class Pager {
       this.loaded += 1;
       const divider = document.createElement('div');
       divider.className = PAGER.divider;
-      divider.textContent = `第 ${this.loaded + 1} 页`;
+      divider.textContent = t('pager.divider', { page: this.loaded + 1 });
       const fresh: HTMLElement[] = [];
       for (const block of results) {
         const info = this.adapter.extractResult(block);
@@ -166,21 +166,21 @@ export class Pager {
     };
     switch (this.state) {
       case 'loading':
-        text.textContent = `正在加载第 ${this.loaded + 2} 页…`;
+        text.textContent = t('pager.loading', { page: this.loaded + 2 });
         footer.append(text);
         break;
       case 'waiting-for-click':
-        footer.append(button('加载下一页', () => void this.loadNext(true)));
+        footer.append(button(t('pager.loadNext'), () => void this.loadNext(true)));
         break;
       case 'done':
-        text.textContent = '没有更多结果了。';
+        text.textContent = t('pager.end');
         footer.append(text);
         break;
       case 'stopped': {
-        text.textContent = '下一页没能自动加载，可能需要完成验证。';
+        text.textContent = t('pager.failed');
         const link = document.createElement('a');
         link.href = this.nextUrl ?? location.href;
-        link.textContent = '打开下一页';
+        link.textContent = t('pager.openNext');
         footer.append(text, link);
         break;
       }

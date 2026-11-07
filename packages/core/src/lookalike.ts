@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import { registrableDomain, siteOf } from './url';
 
 const CLAIMS_OFFICIAL = /官网|官方|official/i;
@@ -66,7 +67,7 @@ function imitatesProminent(result: PageResult, page: PageResult[]): LookalikeWar
     if (name.length < MIN_BRAND_LENGTH || label === name || !label.startsWith(name)) continue;
     if (!COPYCAT_TAIL.test(label.slice(name.length))) continue;
     return {
-      message: `${site} 的域名像是在 ${siteOf(official.host)} 后面加了后缀，可能是仿冒的。搜索引擎把 ${siteOf(official.host)} 列为这个网站本身，下载前请核对。`,
+      message: t('lookalike.prominent', { site, official: siteOf(official.host) }),
       likelyOfficial: official.host,
     };
   }
@@ -88,8 +89,8 @@ function claimsOfficialOnBrandDomain(result: PageResult, query: string, page: Pa
     const site = registrableDomain(result.host!);
     return {
       message: official
-        ? `这个网站自称官网，但 ${brand} 的官网可能是 ${registrableDomain(official)}。${site} 的域名像是仿冒的，下载前请核对。`
-        : `这个网站自称官网，但 ${site} 的域名像是在 ${brand} 后面加了后缀，可能是仿冒的。下载前请核对。`,
+        ? t('lookalike.claimsWithOfficial', { brand, official: registrableDomain(official), site })
+        : t('lookalike.claims', { site, brand }),
       likelyOfficial: official,
     };
   }

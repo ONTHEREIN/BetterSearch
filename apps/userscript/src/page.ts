@@ -4,6 +4,7 @@ import {
   planGrid,
   siteOf,
   stripTracking,
+  t,
   type EngineAdapter,
   type ResultInfo,
   type RuleSet,
@@ -175,8 +176,8 @@ export class Page {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = CLASSES.blockButton;
-    button.title = `屏蔽 ${siteOf(host)}`;
-    button.setAttribute('aria-label', `屏蔽 ${siteOf(host)}`);
+    button.title = t('block.button', { site: siteOf(host) });
+    button.setAttribute('aria-label', button.title);
     button.innerHTML = BLOCK_ICON;
     button.addEventListener('click', (event) => {
       event.preventDefault();
@@ -212,10 +213,10 @@ export class Page {
         bar = document.createElement('div');
         bar.className = `${CLASSES.notice} ${CLASSES.aiBar}`;
         const text = document.createElement('span');
-        text.textContent = '已折叠搜索引擎生成的 AI 回答。';
+        text.textContent = t('ai.collapsed');
         const show = document.createElement('button');
         show.type = 'button';
-        show.textContent = '展开';
+        show.textContent = t('ai.expand');
         show.addEventListener('click', () => {
           this.aiExpanded.add(el);
           this.apply();
@@ -240,13 +241,16 @@ export class Page {
       notice.className = CLASSES.notice;
       const show = document.createElement('button');
       show.type = 'button';
-      show.textContent = '显示';
+      show.textContent = t('blocked.show');
       notice.append(document.createElement('span'), show);
       first.before(notice);
       this.notices.set(first, notice);
     }
     const sites = [...new Set(run.map((r) => siteOf(r.info.host!)))];
-    setText(notice.querySelector('span')!, `隐藏了 ${run.length} 条来自 ${sites.join('、')} 的结果，这些是你屏蔽的网站。`);
+    setText(
+      notice.querySelector('span')!,
+      t('blocked.notice', { count: run.length, sites: sites.join(t('blocked.separator')) }),
+    );
     // Rebind on every pass: the run behind this notice can change.
     notice.querySelector('button')!.onclick = () => {
       for (const r of run) this.revealed.add(r.el);

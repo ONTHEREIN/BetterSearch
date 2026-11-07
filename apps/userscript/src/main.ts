@@ -10,7 +10,10 @@ import {
   removeRule,
   saveSettings,
   siteOf,
+  setLocale,
+  detectLocale,
   siteRule,
+  t,
   type EngineAdapter,
   type Settings,
 } from '@bettersearch/core';
@@ -30,8 +33,8 @@ function run(adapter: EngineAdapter): void {
     onBlockSite(host) {
       const rule = siteRule(host);
       update({ ...settings, rules: addRule(settings.rules, rule) });
-      showToast(`已屏蔽 ${siteOf(host)}`, {
-        label: '撤销',
+      showToast(t('block.toast', { site: siteOf(host) }), {
+        label: t('block.undo'),
         run: () => update({ ...settings, rules: removeRule(settings.rules, rule) }),
       });
     },
@@ -114,7 +117,7 @@ function run(adapter: EngineAdapter): void {
   // Runs at document-start: hide ads before the page paints.
   injectStyle(adapter.adSelectors, LAYOUT_CSS + pagerCss(adapter.paginationSelector));
   applyGlobal();
-  registerMenuCommand('BetterSearch 设置', () => toggleSettings(panel));
+  registerMenuCommand(t('menu.settings'), () => toggleSettings(panel));
   window.addEventListener('keydown', (event) => {
     if (event.altKey && event.code === 'Comma') {
       event.preventDefault();
@@ -128,6 +131,7 @@ function run(adapter: EngineAdapter): void {
   }
 }
 
+setLocale(detectLocale(navigator.languages ?? [navigator.language]));
 const adapter = adapterForHost(location.hostname);
 if (adapter) {
   // At document-start the script can run before the parser has created <html>,

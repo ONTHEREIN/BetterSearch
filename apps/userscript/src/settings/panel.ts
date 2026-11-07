@@ -1,4 +1,4 @@
-import type { Settings, Subscription } from '@bettersearch/core';
+import { t, type Settings, type Subscription } from '@bettersearch/core';
 import { mount, unmount } from 'svelte';
 import SettingsPanel from './Settings.svelte';
 
@@ -60,8 +60,8 @@ export function addGearButton(bar: HTMLElement | null, options: PanelOptions): v
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'bs-gear';
-  button.title = 'BetterSearch 设置（Alt+,）';
-  button.setAttribute('aria-label', 'BetterSearch 设置');
+  button.title = t('gear.title');
+  button.setAttribute('aria-label', t('settings.title'));
   button.innerHTML = GEAR_ICON;
   Object.assign(button.style, {
     position: 'absolute',
