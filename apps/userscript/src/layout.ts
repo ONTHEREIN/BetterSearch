@@ -233,6 +233,13 @@ html[${LAYOUT_ATTR}] {
 }
 html[${LAYOUT_ATTR}][data-bs-density='comfortable'] { --bs-gap: 16px; --bs-pad: 16px 18px; }
 html[${LAYOUT_ATTR}][data-bs-theme='dark'] { --bs-line: rgba(255, 255, 255, .12); --bs-card: rgba(255, 255, 255, .04); }
+html[${LAYOUT_ATTR}][data-bs-style='raised'] {
+  --bs-card: #f6f8fb; --bs-shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  --bs-shadow-hover: 0 4px 12px rgba(16, 24, 40, .12);
+}
+html[${LAYOUT_ATTR}][data-bs-style='raised'][data-bs-theme='dark'] {
+  --bs-card: rgba(255, 255, 255, .06); --bs-shadow: none; --bs-shadow-hover: 0 0 0 1px rgba(255, 255, 255, .16);
+}
 
 html[${LAYOUT_ATTR}] .${GRID.wide} { width: var(--bs-main-w) !important; max-width: none !important; min-width: 0 !important; }
 html[${LAYOUT_ATTR}] .${GRID.shift} { transform: translateX(var(--bs-main-shift, 0px)); }
@@ -279,6 +286,11 @@ html[${LAYOUT_ATTR}] .${GRID.organic} :has(> cite) { white-space: nowrap; overfl
 html[${LAYOUT_ATTR}][data-bs-style='card'] .${GRID.organic} {
   padding: var(--bs-pad) !important; border: 1px solid var(--bs-line); border-radius: 10px; background: var(--bs-card);
 }
+html[${LAYOUT_ATTR}][data-bs-style='raised'] .${GRID.organic} {
+  padding: var(--bs-pad) !important; border-radius: 12px; background: var(--bs-card); box-shadow: var(--bs-shadow);
+  transition: box-shadow .15s;
+}
+html[${LAYOUT_ATTR}][data-bs-style='raised'] .${GRID.organic}:hover { box-shadow: var(--bs-shadow-hover); }
 html[${LAYOUT_ATTR}][data-bs-style='line'] .${GRID.organic} { padding: 12px 0 !important; border-bottom: 1px solid var(--bs-line); }
 html[${LAYOUT_ATTR}] .${GRID.organic} .${GRID.noBleed} { margin-left: 0 !important; margin-right: 0 !important; }
 html[${LAYOUT_ATTR}] .${GRID.organic} :is(h2, h3) {

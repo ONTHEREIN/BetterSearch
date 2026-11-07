@@ -3,7 +3,8 @@ import type { KeyValueStore } from './types';
 
 export type BlockAction = 'collapse' | 'hide';
 export type Columns = 'auto' | '1' | '2' | '3';
-export type CardStyle = 'card' | 'line';
+/** Theme preset for results: outlined cards, raised cards without outline, or divider lines. */
+export type CardStyle = 'card' | 'raised' | 'line';
 export type Density = 'compact' | 'comfortable';
 /** Where result links open; `engine` keeps each engine's own behaviour. */
 export type OpenLinks = 'engine' | 'new' | 'same';

@@ -99,10 +99,14 @@
         </select>
       </label>
       <fieldset>
-        <legend>结果样式</legend>
+        <legend>主题</legend>
         <label class="row">
           <input type="radio" name="bs-style" value="card" bind:group={settings.cardStyle} onchange={commit} />
-          <span>卡片</span>
+          <span>描边卡片</span>
+        </label>
+        <label class="row">
+          <input type="radio" name="bs-style" value="raised" bind:group={settings.cardStyle} onchange={commit} />
+          <span>浮起卡片</span>
         </label>
         <label class="row">
           <input type="radio" name="bs-style" value="line" bind:group={settings.cardStyle} onchange={commit} />
