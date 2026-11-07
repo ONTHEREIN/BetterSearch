@@ -16,7 +16,12 @@ export default defineConfig({
       userscript: {
         name: 'BetterSearch',
         namespace: 'bettersearch',
-        description: 'Cleaner, safer search results for Google, Bing and Baidu.',
+        description: {
+          '': 'Cleaner, safer search results for Google, Bing and Baidu: no ads, site blocking, lookalike warnings, auto-paging and a card layout.',
+          'zh-CN': '让 Google、Bing、百度的搜索结果更干净、更安全：去广告、屏蔽网站、提示仿冒官网、自动翻页、多列卡片布局。',
+        },
+        homepageURL: 'https://github.com/ONTHEREIN/BetterSearch',
+        supportURL: 'https://github.com/ONTHEREIN/BetterSearch/issues',
         license: 'GPL-3.0-or-later',
         match: [
           'https://www.google.com/search*',

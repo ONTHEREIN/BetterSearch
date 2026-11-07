@@ -2,7 +2,24 @@
 
 一个增强 Google、Bing、百度搜索结果页的油猴脚本：去广告、屏蔽站点、防范仿冒官网、拦截重定向、自动翻页，以及可自定义的双列布局。
 
-> 开发中，尚未发布。设计见 [docs/DESIGN.md](docs/DESIGN.md)。
+> 开发中，尚未发布到 Greasy Fork。设计见 [docs/DESIGN.md](docs/DESIGN.md)。
+
+## 安装
+
+1. 安装脚本管理器：[Tampermonkey](https://www.tampermonkey.net/)（Chrome、Edge、Firefox、Safari）或 [Violentmonkey](https://violentmonkey.github.io/)。Safari 也可以用 [Userscripts](https://github.com/quoid/userscripts)。
+2. 发布前：从 [CI 的构建产物](https://github.com/ONTHEREIN/BetterSearch/actions/workflows/ci.yml) 下载 `bettersearch.user.js`，拖进脚本管理器安装；或者按下面的「开发」自己构建。
+
+在搜索结果页点搜索框旁边的齿轮，或按 `Alt+,` 打开设置。
+
+## 仿冒站名单
+
+社区维护的仿冒站名单在 [bettersearch-rules](https://github.com/ONTHEREIN/bettersearch-rules)，默认不开启。想用的话，在设置的「屏蔽 → 订阅列表」里添加：
+
+```
+https://raw.githubusercontent.com/ONTHEREIN/bettersearch-rules/main/lookalike.txt
+```
+
+结果卡片右上角的旗子按钮可以举报仿冒网站，会打开名单仓库的举报表单，域名和搜索词已经填好。
 
 ## 开发
 
@@ -12,6 +29,7 @@
 pnpm install
 pnpm test        # 运行单元测试（测试数据在 fixtures/）
 pnpm dev         # 启动开发服务器，按提示在 Tampermonkey 中安装开发版脚本（支持热更新）
+                 # Edge/Chrome 需要给每个搜索网站开「本机回环地址」权限，见 DESIGN.md 第 3 节
 pnpm build       # 输出 apps/userscript/dist/bettersearch.user.js
 pnpm typecheck
 ```
