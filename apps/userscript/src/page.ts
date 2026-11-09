@@ -1,5 +1,6 @@
 import {
   checkLookalike,
+  officialFor,
   reportUrl,
   compileRules,
   planGrid,
@@ -10,8 +11,10 @@ import {
   type ResultInfo,
   type RuleSet,
   type Settings,
+  type SiteDirectory,
 } from '@bettersearch/core';
 import { Grid } from './layout';
+import { PAGER } from './pager';
 import { CLASSES } from './style';
 
 /** The `target` a link had before we changed it, so `engine` can restore it. */
@@ -25,6 +28,8 @@ const BLOCK_ICON =
 
 export interface PageHooks {
   onBlockSite(host: string): void;
+  /** The known-sites list, while the official-site check is on. */
+  sites(): SiteDirectory | null;
 }
 
 interface Result {
@@ -47,6 +52,7 @@ export class Page {
   /** One notice per run of adjacent blocked results, keyed by the run's first result. */
   private readonly notices = new WeakMap<HTMLElement, HTMLElement>();
   private readonly warnings = new WeakMap<HTMLElement, HTMLElement>();
+  private readonly badges = new WeakMap<HTMLElement, HTMLElement>();
   /** Blocked results the user chose to show anyway. */
   private readonly revealed = new WeakSet<HTMLElement>();
   private readonly aiBars = new WeakMap<HTMLElement, HTMLElement>();
@@ -137,11 +143,20 @@ export class Page {
     el.classList.add(CLASSES.result);
     if (this.settings.cleanLinks) this.cleanLinks(el, info);
     this.setLinkTargets(el);
+    const sites = this.hooks.sites();
+    // undefined while the domain's shard downloads; the directory re-applies when it arrives.
+    const site = info.host && sites ? sites.peek(info.host) : null;
+    const official = site ? officialFor(site, query) : null;
+    this.showOfficial(el, official);
+    // Within the first page: a later page's official result jumping above page 1 would be lost.
+    const divider = document.querySelector(`.${PAGER.divider}`);
+    const firstPage = !divider || !!(el.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_FOLLOWING);
+    this.cellOf(el).classList.toggle(CLASSES.pinned, !!official && this.settings.pinOfficial && firstPage);
     if (!info.host) return;
     this.ensureBlockButton(el, info.host);
     const report = () => window.open(reportUrl(info.host!, query, this.adapter.id), '_blank', 'noopener');
     this.ensureReportButton(el, info.host, report);
-    const warning = checkLookalike(info, query, page);
+    const warning = checkLookalike(info, query, page, { known: sites ? (site === undefined ? undefined : !!site) : null });
     el.classList.toggle(CLASSES.suspicious, !!warning);
     if (warning) {
       const box = this.ensureWarning(el, report);
@@ -151,6 +166,26 @@ export class Page {
       const box = this.warnings.get(el);
       if (box) box.hidden = true;
     }
+  }
+
+  /** A line under the result saying it is the official site, and whose. */
+  private showOfficial(result: HTMLElement, name: string | null): void {
+    let badge = this.badges.get(result);
+    if (!name) {
+      if (badge) badge.hidden = true;
+      return;
+    }
+    if (!badge?.isConnected) {
+      badge = document.createElement('div');
+      badge.className = CLASSES.official;
+      badge.setAttribute('role', 'note');
+      badge.append(document.createElement('strong'), document.createElement('span'));
+      result.append(badge);
+      this.badges.set(result, badge);
+    }
+    setText(badge.querySelector('strong')!, t('official.badge'));
+    setText(badge.querySelector('span')!, t('official.source', { brand: name }));
+    badge.hidden = false;
   }
 
   /** Point the result's links at the real destination and stop click pings. */

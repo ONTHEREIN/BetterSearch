@@ -10,6 +10,8 @@ export const CLASSES = {
   notice: 'bs-notice',
   suspicious: 'bs-suspicious',
   warning: 'bs-warning',
+  official: 'bs-official',
+  pinned: 'bs-pinned',
   aiCollapsed: 'bs-ai-collapsed',
   aiBar: 'bs-ai-bar',
   moved: 'bs-moved-module',
@@ -61,6 +63,17 @@ const CSS = `
 .${C.warning}[hidden] { display: none; }
 .${C.warning}::before { content: '⚠'; flex: none; }
 html[data-bs-theme='dark'] .${C.warning} { background: #3a2610; color: #ffcf99; }
+
+.${C.official} {
+  display: flex; align-items: baseline; gap: 6px; margin-top: 6px;
+  color: #1a7f37; font: 12px/1.5 system-ui, sans-serif;
+}
+.${C.official}[hidden] { display: none; }
+.${C.official}::before { content: '✓'; font-weight: 700; }
+.${C.official} span { opacity: .75; }
+html[data-bs-theme='dark'] .${C.official} { color: #6fdd8b; }
+/* Only reorders in the grid; the engine's own layout is not a grid. */
+.${C.pinned} { order: -1; }
 
 .${C.toast} {
   position: fixed; left: 50%; bottom: 24px; z-index: 2147483646; transform: translateX(-50%);

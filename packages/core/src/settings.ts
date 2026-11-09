@@ -27,6 +27,12 @@ export interface Settings {
   autoPage: boolean;
   /** Pages loaded automatically before switching to a "load more" button. */
   autoPageLimit: number;
+  /** Check result sites against the known-sites list: mark official ones, warn about unknown ones claiming to be. */
+  markOfficial: boolean;
+  /** Move results on an official site to the top of the grid. */
+  pinOfficial: boolean;
+  /** Prefix for a GitHub proxy, tried first when downloading the known-sites list. */
+  githubProxy: string;
   /** Fold the engine's own AI answer into a one-line bar. */
   collapseAiAnswers: boolean;
   /** Block rules in uBlacklist syntax, one per line. */
@@ -48,6 +54,9 @@ export const DEFAULT_SETTINGS: Settings = {
   cardStyle: 'card',
   density: 'compact',
   collapseAiAnswers: true,
+  markOfficial: true,
+  pinOfficial: false,
+  githubProxy: '',
   autoPage: true,
   autoPageLimit: 5,
   rules: '',

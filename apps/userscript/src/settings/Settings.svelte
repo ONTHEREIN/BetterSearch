@@ -172,6 +172,28 @@
   </section>
 
   <section>
+    <h3>{t('official.title')}</h3>
+    <label class="row">
+      <input type="checkbox" bind:checked={settings.markOfficial} onchange={commit} />
+      <span>{t('official.mark')}</span>
+    </label>
+    {#if settings.markOfficial}
+      <label class="row">
+        <input type="checkbox" bind:checked={settings.pinOfficial} onchange={commit} />
+        <span>{t('official.pin')}</span>
+      </label>
+    {/if}
+    <p class="hint">{t('official.hint')}</p>
+    {#if settings.markOfficial}
+      <label class="stack">
+        <span>{t('official.proxy')}</span>
+        <input class="text" type="url" placeholder="https://…/" bind:value={settings.githubProxy} onchange={commit} />
+      </label>
+      <p class="hint">{t('official.proxyHint')}</p>
+    {/if}
+  </section>
+
+  <section>
     <h3>{t('blocking.title')}</h3>
     <fieldset>
       <legend>{t('blocking.action')}</legend>

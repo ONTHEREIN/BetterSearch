@@ -6,7 +6,18 @@ export { autoColumns, gridSize, planGrid, type GridPlan } from './layout';
 export { stripTracking } from './links';
 export { detectLocale, setLocale, t, type Locale, type MessageKey } from './i18n';
 export { reportUrl, RULES_REPO } from './report';
-export { brandTokens, checkLookalike, type LookalikeWarning, type PageResult } from './lookalike';
+export { brandTerms, brandTokens, checkLookalike, type LookalikeContext, type LookalikeWarning, type PageResult } from './lookalike';
+export {
+  mentions,
+  normalizeText,
+  officialFor,
+  shardOf,
+  shardUrls,
+  SiteDirectory,
+  SortedList,
+  SHARD_REFRESH_MS,
+  type KnownSite,
+} from './sites';
 export { compileRules, siteRule, type RuleSet } from './rules';
 export {
   cachedList,

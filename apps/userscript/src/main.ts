@@ -3,6 +3,8 @@ import {
   addRule,
   cachedList,
   combinedRules,
+  shardUrls,
+  SiteDirectory,
   isStale,
   lastFailure,
   refreshSubscription,
@@ -28,8 +30,16 @@ import { showToast } from './toast';
 
 function run(adapter: EngineAdapter): void {
   let settings: Settings = loadSettings(store);
+  // Shards arrive one by one as results need them; re-apply after each.
+  const sites = new SiteDirectory(
+    store,
+    fetchText,
+    (shard) => shardUrls(shard, settings.githubProxy),
+    () => page.apply(),
+  );
 
   const page = new Page(adapter, {
+    sites: () => (settings.markOfficial ? sites : null),
     onBlockSite(host) {
       const rule = siteRule(host);
       update({ ...settings, rules: addRule(settings.rules, rule) });

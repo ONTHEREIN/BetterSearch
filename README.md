@@ -11,6 +11,10 @@
 
 在搜索结果页点搜索框旁边的齿轮，或按 `Alt+,` 打开设置。
 
+## 官网核对
+
+标题自称官网或官方、网站却既不是 [Wikidata](https://www.wikidata.org/) 登记过的官网、也不是常见网站的结果，会显示 ⚠️ 提示；搜索词提到的品牌的官网标上「✓ 官方网站」。名单由 [bettersearch-rules](https://github.com/ONTHEREIN/bettersearch-rules) 每周生成，分成 4096 片，只下载所查域名所在的那一片，国内走 Gitee 镜像。第一次下载时脚本管理器会请你允许访问 `gitee.com` 和 `raw.giteeusercontent.com`。官网写错了，请到 Wikidata 上修改对应条目。
+
 ## 仿冒站名单
 
 社区维护的仿冒站名单在 [bettersearch-rules](https://github.com/ONTHEREIN/bettersearch-rules)，默认不开启。想用的话，在设置的「屏蔽 → 订阅列表」里添加：

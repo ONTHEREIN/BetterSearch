@@ -23,6 +23,9 @@ const zh = {
     '{site} 的域名像是在 {official} 后面加了后缀，可能是仿冒的。搜索引擎把 {official} 列为这个网站本身，下载前请核对。',
   'lookalike.claimsWithOfficial': '这个网站自称官网，但 {brand} 的官网可能是 {official}。{site} 的域名像是仿冒的，下载前请核对。',
   'lookalike.claims': '这个网站自称官网，但 {site} 的域名像是在 {brand} 后面加了后缀，可能是仿冒的。下载前请核对。',
+  'lookalike.unknown': '标题说是 {brand} 官方，但 {site} 不在 Wikidata 登记的官网里，也不是常见网站。下载前请核对。',
+  'official.badge': '官方网站',
+  'official.source': '{brand} 的官网，来自 Wikidata 登记',
   'menu.settings': 'BetterSearch 设置',
   'gear.title': 'BetterSearch 设置（Alt+,）',
 
@@ -43,6 +46,13 @@ const zh = {
   'appearance.compact': '紧凑',
   'appearance.comfortable': '宽松',
   'appearance.collapseAi': '把搜索引擎自带的 AI 回答折叠成一行',
+  'official.title': '官网核对',
+  'official.mark': '核对网站是否为 Wikidata 登记的官网',
+  'official.pin': '把官方网站排到最前面（多列布局时）',
+  'official.hint':
+    '标题自称官方、却不在 Wikidata 登记的官网和常见网站里的结果会显示提示；搜索词里的品牌对上时标出官网。数据来自 Wikidata 和 Majestic Million，每周更新，按域名分片下载，只会请求所查域名所在的那一片。',
+  'official.proxy': 'GitHub 加速前缀',
+  'official.proxyHint': '国内下载不了时可以填一个你信任的 GitHub 加速地址，例如 https://ghfast.top/，会最先尝试。',
   'paging.title': '翻页',
   'paging.auto': '滚动到底部时自动加载下一页',
   'paging.limitBefore': '自动加载',
@@ -106,6 +116,10 @@ const en: Record<MessageKey, string> = {
     'This site calls itself official, but the official {brand} site is probably {official}. {site} looks like an imitation. Check before downloading anything.',
   'lookalike.claims':
     'This site calls itself official, but {site} looks like {brand} with a suffix added and may be an imitation. Check before downloading anything.',
+  'lookalike.unknown':
+    'The title says official {brand}, but {site} is neither an official website on Wikidata nor a well-known site. Check before downloading anything.',
+  'official.badge': 'Official site',
+  'official.source': 'Official {brand} site, as registered on Wikidata',
   'menu.settings': 'BetterSearch settings',
   'gear.title': 'BetterSearch settings (Alt+,)',
 
@@ -125,6 +139,13 @@ const en: Record<MessageKey, string> = {
   'appearance.compact': 'Compact',
   'appearance.comfortable': 'Comfortable',
   'appearance.collapseAi': "Collapse the search engine's own AI answer into one line",
+  'official.title': 'Official-site check',
+  'official.mark': "Check sites against Wikidata's official websites",
+  'official.pin': 'Move official sites to the top (in the card layout)',
+  'official.hint':
+    'A result whose title claims to be official while its site is neither an official website on Wikidata nor well known gets a warning; when the query names a brand, its official site is marked. Data from Wikidata and the Majestic Million, updated weekly and downloaded in shards: only the shard holding a looked-up domain is requested.',
+  'official.proxy': 'GitHub proxy prefix',
+  'official.proxyHint': 'If downloads fail, enter a GitHub proxy you trust, e.g. https://ghfast.top/; it is tried first.',
   'paging.title': 'Paging',
   'paging.auto': 'Load the next page when scrolling to the bottom',
   'paging.limitBefore': 'After',
