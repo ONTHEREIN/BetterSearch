@@ -23,6 +23,8 @@ export interface Settings {
   columns: Columns;
   cardStyle: CardStyle;
   density: Density;
+  /** The user's own CSS, applied on every engine; `html[data-bs-engine='bing']` scopes a rule to one. */
+  customCss: string;
   /** Load the next page of results when scrolling near the end. */
   autoPage: boolean;
   /** Pages loaded automatically before switching to a "load more" button. */
@@ -53,6 +55,7 @@ export const DEFAULT_SETTINGS: Settings = {
   columns: '2',
   cardStyle: 'card',
   density: 'compact',
+  customCss: '',
   collapseAiAnswers: true,
   markOfficial: true,
   pinOfficial: false,

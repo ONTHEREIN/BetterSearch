@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { removeRule, t, type Settings, type Subscription } from '@bettersearch/core';
+  import { exportTheme, parseTheme, removeRule, t, type Settings, type Subscription } from '@bettersearch/core';
   import type { SubscriptionStatus } from './panel';
 
   interface Props {
@@ -63,6 +63,34 @@
     if (!status.fetchedAt) return t('subs.notFetched');
     const when = new Date(status.fetchedAt).toLocaleString();
     return t('subs.status', { count: status.ruleCount, when }) + (status.error ? t('subs.lastFailed') : '');
+  }
+
+  /** Pasted theme JSON while importing, null otherwise. */
+  let themeText = $state<string | null>(null);
+  let themeMessage = $state('');
+
+  async function copyTheme() {
+    const json = exportTheme(settings);
+    try {
+      await navigator.clipboard.writeText(json);
+      themeMessage = t('theme.copied');
+    } catch {
+      // No clipboard access: show it to copy by hand.
+      themeText = json;
+      themeMessage = '';
+    }
+  }
+
+  function applyTheme() {
+    const result = parseTheme(themeText ?? '');
+    if ('problem' in result) {
+      themeMessage = t(result.problem);
+      return;
+    }
+    Object.assign(settings, result.theme);
+    themeText = null;
+    themeMessage = t('theme.imported');
+    commit();
   }
 
   function onkeydown(event: KeyboardEvent) {
@@ -129,6 +157,33 @@
       <input type="checkbox" bind:checked={settings.collapseAiAnswers} onchange={commit} />
       <span>{t('appearance.collapseAi')}</span>
     </label>
+
+    <label class="stack">
+      <span>{t('theme.css')}</span>
+      <textarea rows="5" spellcheck="false" bind:value={settings.customCss} oninput={commit}></textarea>
+    </label>
+    <!-- Our own constant markup, not user input. -->
+    <p class="hint">{@html t('theme.cssHint')}</p>
+    <div class="row actions">
+      <button type="button" class="link" onclick={copyTheme}>{t('theme.export')}</button>
+      {#if themeText === null}
+        <button type="button" class="link" onclick={() => ((themeText = ''), (themeMessage = ''))}>{t('theme.import')}</button>
+      {/if}
+    </div>
+    {#if themeText !== null}
+      <textarea
+        rows="5"
+        spellcheck="false"
+        aria-label={t('theme.import')}
+        placeholder={t('theme.importPlaceholder')}
+        bind:value={themeText}
+      ></textarea>
+      <div class="row actions">
+        <button type="button" class="link" onclick={applyTheme}>{t('theme.apply')}</button>
+        <button type="button" class="link" onclick={() => ((themeText = null), (themeMessage = ''))}>{t('theme.cancel')}</button>
+      </div>
+    {/if}
+    <p class="hint" role="status">{themeMessage || t('theme.shareHint')}</p>
   </section>
 
   <section>
@@ -371,6 +426,9 @@
   .add {
     margin-top: 8px;
   }
+  .actions {
+    gap: 16px;
+  }
   input.text {
     flex: 1;
     min-width: 0;
@@ -421,7 +479,7 @@
     color: var(--dim);
     font-size: 13px;
   }
-  code {
+  .hint :global(code) {
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
     font-size: 12px;
   }

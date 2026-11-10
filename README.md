@@ -15,6 +15,12 @@
 
 标题自称官网或官方、网站却既不是 [Wikidata](https://www.wikidata.org/) 登记过的官网、也不是常见网站的结果，会显示 ⚠️ 提示；搜索词提到的品牌的官网标上「✓ 官方网站」。名单由 [bettersearch-rules](https://github.com/ONTHEREIN/bettersearch-rules) 每周生成，分成 4096 片，只下载所查域名所在的那一片，国内走 Gitee 镜像。第一次下载时脚本管理器会请你允许访问 `gitee.com` 和 `raw.giteeusercontent.com`。官网写错了，请到 Wikidata 上修改对应条目。
 
+## 主题和自定义 CSS
+
+设置的「外观」里可以写自己的 CSS，在所有引擎上生效。结果卡片的间距、颜色等用 CSS 变量控制，例如 `html { --bs-gap: 20px; --bs-card: #fffdf5; }`。只改一个引擎时，选择器前加 `html[data-bs-engine='bing']`（`google`、`bing`、`baidu`）。
+
+「复制主题」把卡片样式、密度和自定义 CSS 复制成一段 JSON，发给别人后对方用「导入主题」粘贴即可。为了不让主题把搜索词发出去，导入时会拒绝从别的网站加载内容的 CSS（`@import`、外部 `url()` 等），图片请用 `data:` 地址内嵌。
+
 ## 仿冒站名单
 
 社区维护的仿冒站名单在 [bettersearch-rules](https://github.com/ONTHEREIN/bettersearch-rules)，默认不开启。想用的话，在设置的「屏蔽 → 订阅列表」里添加：

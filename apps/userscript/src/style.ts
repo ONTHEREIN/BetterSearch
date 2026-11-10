@@ -93,11 +93,26 @@ let style: HTMLStyleElement | null = null;
  * <head> when it swaps in new results. Safe to call repeatedly.
  */
 export function injectStyle(adSelectors: readonly string[], extraCss = ''): void {
-  if (style?.isConnected) return;
+  if (style?.isConnected && (!custom || custom.isConnected)) return;
   if (!style) {
     style = document.createElement('style');
     style.textContent = adCss(adSelectors) + CSS + extraCss;
   }
   // At document-start <head> may not exist yet; <html> always does.
   (document.head ?? document.documentElement).append(style);
+  if (custom) style.after(custom);
+}
+
+let custom: HTMLStyleElement | null = null;
+
+/** The user's own CSS, kept right after ours so it overrides it. */
+export function setCustomCss(css: string): void {
+  if (!css) {
+    custom?.remove();
+    custom = null;
+    return;
+  }
+  custom ??= document.createElement('style');
+  if (custom.textContent !== css) custom.textContent = css;
+  if (style && custom.previousSibling !== style) style.after(custom);
 }

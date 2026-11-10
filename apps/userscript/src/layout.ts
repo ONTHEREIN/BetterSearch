@@ -234,19 +234,20 @@ export class Grid {
 }
 
 export const LAYOUT_CSS = `
-html[${LAYOUT_ATTR}] {
+/* Variables sit in :where() so custom CSS, which comes after, overrides them with a plain \`html\`. */
+html:where([${LAYOUT_ATTR}]) {
   --bs-gap: 12px;
   --bs-pad: 12px 14px;
   --bs-line: #e3e7ed;
   --bs-card: #ffffff;
 }
-html[${LAYOUT_ATTR}][data-bs-density='comfortable'] { --bs-gap: 16px; --bs-pad: 16px 18px; }
-html[${LAYOUT_ATTR}][data-bs-theme='dark'] { --bs-line: rgba(255, 255, 255, .12); --bs-card: rgba(255, 255, 255, .04); }
-html[${LAYOUT_ATTR}][data-bs-style='raised'] {
+html:where([${LAYOUT_ATTR}][data-bs-density='comfortable']) { --bs-gap: 16px; --bs-pad: 16px 18px; }
+html:where([${LAYOUT_ATTR}][data-bs-theme='dark']) { --bs-line: rgba(255, 255, 255, .12); --bs-card: rgba(255, 255, 255, .04); }
+html:where([${LAYOUT_ATTR}][data-bs-style='raised']) {
   --bs-card: #f6f8fb; --bs-shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
   --bs-shadow-hover: 0 4px 12px rgba(16, 24, 40, .12);
 }
-html[${LAYOUT_ATTR}][data-bs-style='raised'][data-bs-theme='dark'] {
+html:where([${LAYOUT_ATTR}][data-bs-style='raised'][data-bs-theme='dark']) {
   --bs-card: rgba(255, 255, 255, .06); --bs-shadow: none; --bs-shadow-hover: 0 0 0 1px rgba(255, 255, 255, .16);
 }
 

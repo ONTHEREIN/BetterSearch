@@ -24,7 +24,7 @@ import { Page } from './page';
 import { Pager, pagerCss } from './pager';
 import { fetchText, registerMenuCommand, store } from './platform';
 import { addGearButton, toggleSettings, type PanelOptions } from './settings/panel';
-import { injectStyle, NO_ADS_CLASS } from './style';
+import { injectStyle, NO_ADS_CLASS, setCustomCss } from './style';
 import { syncTheme } from './theme';
 import { showToast } from './toast';
 
@@ -84,6 +84,9 @@ function run(adapter: EngineAdapter): void {
 
   function applyGlobal(): void {
     document.documentElement.classList.toggle(NO_ADS_CLASS, settings.removeAds);
+    // Lets custom CSS scope a rule to one engine.
+    document.documentElement.dataset.bsEngine = adapter.id;
+    setCustomCss(settings.customCss);
   }
 
   function update(next: Settings): void {

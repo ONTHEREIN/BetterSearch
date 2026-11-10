@@ -46,6 +46,7 @@ export {
   type OpenLinks,
   type Settings,
 } from './settings';
+export { exportTheme, parseTheme, themeCssProblem, type Theme, type ThemeProblem } from './theme';
 export { hostFromDisplayUrl, registrableDomain, siteOf, stripWww } from './url';
 
 import { baiduAdapter } from './adapters/baidu';
