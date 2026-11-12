@@ -67,7 +67,7 @@ export class Grid {
 
   apply(
     container: HTMLElement | null,
-    side: HTMLElement | null,
+    columns: { side: HTMLElement | null; left: HTMLElement | null },
     plan: GridPlan | null,
     organic: ReadonlySet<HTMLElement>,
     settings: Settings,
@@ -131,7 +131,7 @@ export class Grid {
       }
     }
 
-    this.measure(container, side, settings);
+    this.measure(container, columns.side, columns.left, settings);
 
     // Some results carry fixed-width content wider than a column. Give those a
     // full row; once given, keep it so the cell does not flip back and forth.
@@ -151,7 +151,7 @@ export class Grid {
     this.measuredFor = null;
   }
 
-  private measure(container: HTMLElement, side: HTMLElement | null, settings: Settings): void {
+  private measure(container: HTMLElement, side: HTMLElement | null, leftColumn: HTMLElement | null, settings: Settings): void {
     const viewport = root().clientWidth;
     const key = `${settings.columns}`;
     // The side column often renders after the results; its arrival changes the room.
@@ -212,7 +212,9 @@ export class Grid {
     // after widening: a parent centred with auto margins (Baidu on wide
     // screens) moves everything when it gets wider.
     const total = mainWidth + (hasSide ? SIDE_GAP + SIDE_WIDTH : 0);
-    const left = Math.round(Math.max(RIGHT_PADDING, (viewport - total) / 2));
+    // Never further left than the engine put the results beside its left column.
+    const clear = isShown(leftColumn) ? Math.max(RIGHT_PADDING, Math.min(leftColumn.getBoundingClientRect().right, box.left)) : RIGHT_PADDING;
+    const left = Math.round(Math.max(clear, (viewport - total) / 2));
     setVar('--bs-main-shift', '0px');
     setVar('--bs-side-shift', '0px');
     const outer = chain[chain.length - 1];

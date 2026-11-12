@@ -19,6 +19,8 @@ const MODULES: [BlockType, string][] = [
   ['knowledge', '[data-attrid^="kc:"]'],
   ['widget', '[data-attrid="Converter"], #wob_wc'],
 ];
+/** A story on the news tab; one unit holds several. */
+const NEWS_ITEM = '[data-news-doc-id]';
 /** A unit with at least this many videos is a video carousel. */
 const VIDEO_CAROUSEL_MIN = 2;
 
@@ -70,6 +72,13 @@ function collectMain(scope: Element): Block[] {
     }
   }
 
+  for (const el of scope.querySelectorAll<HTMLElement>(NEWS_ITEM)) {
+    if (!inModule(el) && !organic.has(el)) {
+      organic.add(el);
+      blocks.push({ el, type: 'organic' });
+    }
+  }
+
   for (const unit of scope.querySelectorAll<HTMLElement>(UNIT)) {
     if (outermostUnit(unit, scope) !== unit || modules.has(unit)) continue;
     if (!unit.textContent?.trim()) continue;
@@ -99,6 +108,10 @@ export const googleAdapter: EngineAdapter = {
     return root.querySelector<HTMLElement>('#rhs');
   },
 
+  leftColumn(root) {
+    return null;
+  },
+
   injectedModules: '',
   paginationSelector: '#botstuff [role="navigation"], #foot',
 
@@ -115,12 +128,13 @@ export const googleAdapter: EngineAdapter = {
     return url.searchParams.get('q') ?? '';
   },
 
-  matches(url) {
-    if (!HOST.test(url.hostname) || url.pathname !== '/search') return false;
-    if (url.searchParams.has('tbm')) return false;
+  tab(url) {
+    if (!HOST.test(url.hostname) || url.pathname !== '/search') return null;
+    const tbm = url.searchParams.get('tbm');
+    if (tbm !== null) return tbm === 'nws' ? 'news' : null;
     const udm = url.searchParams.get('udm');
     // No udm is the "all" tab; udm=14 is the "web" tab.
-    return udm === null || udm === '14';
+    return udm === null || udm === '14' ? 'web' : null;
   },
 
   collectBlocks(root) {
@@ -144,6 +158,13 @@ export const googleAdapter: EngineAdapter = {
 
   extractResult(block) {
     if (block.type !== 'organic') return null;
+    if (block.el.matches(NEWS_ITEM)) {
+      // A story names its source but not its address, and links through /goto.
+      const link = block.el.querySelector('a[href]');
+      const title = block.el.querySelector('[role="heading"]');
+      if (!link || !title) return null;
+      return { title: title.textContent?.trim() ?? '', href: link.getAttribute('href') ?? '', url: null, host: null, prominent: false };
+    }
     const title = block.el.querySelector('a h3');
     const link = title?.closest('a');
     if (!title || !link) return null;

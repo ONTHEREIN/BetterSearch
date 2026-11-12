@@ -5,15 +5,16 @@ import { expectNotNested, loadFixture, summarize } from './fixtures';
 const blocksOf = (name: string) => bingAdapter.collectBlocks(loadFixture('bing', name));
 const summaryOf = (name: string) => summarize(bingAdapter, blocksOf(name));
 
-describe('bingAdapter.matches', () => {
+describe('bingAdapter.tab', () => {
   it.each([
-    ['https://www.bing.com/search?q=a', true],
-    ['https://cn.bing.com/search?q=a', true],
-    ['https://www.bing.com/images/search?q=a', false],
-    ['https://www.bing.com/videos/search?q=a', false],
-    ['https://www.google.com/search?q=a', false],
+    ['https://www.bing.com/search?q=a', 'web'],
+    ['https://cn.bing.com/search?q=a', 'web'],
+    ['https://www.bing.com/news/search?q=a', 'news'],
+    ['https://www.bing.com/images/search?q=a', null],
+    ['https://www.bing.com/videos/search?q=a', null],
+    ['https://www.google.com/search?q=a', null],
   ])('%s -> %s', (url, expected) => {
-    expect(bingAdapter.matches(new URL(url))).toBe(expected);
+    expect(bingAdapter.tab(new URL(url))).toBe(expected);
   });
 });
 
@@ -74,5 +75,28 @@ describe('bingAdapter.extractResult', () => {
       host: 'www.workbuddy.cn',
       prominent: false,
     });
+  });
+});
+
+describe('the news tab', () => {
+  const doc = loadFixture('bing', 'news-huawei.html');
+  const blocks = bingAdapter.collectBlocks(doc);
+
+  it('reads each story and the address it links to', () => {
+    expect(bingAdapter.resultsContainer(doc)?.id).toBe('algocore');
+    expect(blocks).toHaveLength(17);
+    expect(blocks.every((b) => b.type === 'organic')).toBe(true);
+    expect(bingAdapter.extractResult(blocks[0]!)).toEqual({
+      title: '通话清晰选HUAWEI畅享100系列，85dB外放够响',
+      href: 'https://finance.sina.com.cn/tech/roll/2026-11-10/doc-iniyfkmf2757647.shtml',
+      url: 'https://finance.sina.com.cn/tech/roll/2026-11-10/doc-iniyfkmf2757647.shtml',
+      host: 'finance.sina.com.cn',
+      prominent: false,
+    });
+    expectNotNested(blocks);
+  });
+
+  it('has no next page: more stories load as you scroll', () => {
+    expect(bingAdapter.nextPageUrl(doc, 'https://www.bing.com/news/search?q=huawei')).toBeNull();
   });
 });

@@ -20,6 +20,9 @@ function classifyAnswer(el: HTMLElement): BlockType {
   return 'unknown';
 }
 
+/** A story on the news tab, which keeps its address in `data-url`. */
+const NEWS_CARD = '#algocore > .news-card';
+
 function hasText(el: Element | null): el is HTMLElement {
   return !!el?.textContent?.trim();
 }
@@ -38,11 +41,16 @@ export const bingAdapter: EngineAdapter = {
   },
 
   resultsContainer(root) {
-    return root.querySelector<HTMLElement>('#b_results');
+    return root.querySelector<HTMLElement>('#b_results, #algocore');
   },
 
   sideColumn(root) {
     return root.querySelector<HTMLElement>('#b_context');
+  },
+
+  leftColumn(root) {
+    // The news tab's categories.
+    return root.querySelector<HTMLElement>('.news-side-nav');
   },
 
   injectedModules: '#b_results > li.b_algo > .b_inline_ajax_rs',
@@ -61,8 +69,11 @@ export const bingAdapter: EngineAdapter = {
     return url.searchParams.get('q') ?? '';
   },
 
-  matches(url) {
-    return HOST.test(url.hostname) && url.pathname === '/search';
+  tab(url) {
+    if (!HOST.test(url.hostname)) return null;
+    // The news tab loads more stories as you scroll, and has no page links.
+    // cn.bing.com has no news tab and redirects /news to its home page.
+    return url.pathname === '/search' ? 'web' : url.pathname === '/news/search' ? 'news' : null;
   },
 
   collectBlocks(root) {
@@ -85,6 +96,10 @@ export const bingAdapter: EngineAdapter = {
       // .b_pag (pagination) and .b_msg are page furniture, not blocks.
     }
 
+    for (const el of root.querySelectorAll<HTMLElement>(NEWS_CARD)) {
+      if (hasText(el)) blocks.push({ el, type: 'organic' });
+    }
+
     for (const el of root.querySelectorAll<HTMLElement>('#b_context > *')) {
       if (hasText(el)) blocks.push({ el, type: el.matches('.b_ans') ? classifyAnswer(el) : 'unknown' });
     }
@@ -94,6 +109,12 @@ export const bingAdapter: EngineAdapter = {
 
   extractResult(block) {
     if (block.type !== 'organic') return null;
+    if (block.el.matches(NEWS_CARD)) {
+      const link = block.el.querySelector('a.title');
+      const url = block.el.dataset.url ?? '';
+      if (!link || !/^https?:\/\//.test(url)) return null;
+      return { title: link.textContent?.trim() ?? '', href: link.getAttribute('href') ?? '', url, host: new URL(url).hostname, prominent: false };
+    }
     const link = block.el.querySelector('h2 a');
     if (!link) return null;
     const href = link.getAttribute('href') ?? '';

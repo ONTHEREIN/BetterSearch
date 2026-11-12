@@ -54,7 +54,13 @@ export class Pager {
   /** Call on every page refresh; restarts when the engine swapped in a new search. */
   sync(settings: Settings): void {
     const container = this.adapter.resultsContainer(document);
-    const enabled = settings.autoPage && !!container && this.adapter.matches(new URL(location.href));
+    // Without a next page there is nothing to load: the last page, or a tab
+    // that loads more by itself as you scroll (Bing news).
+    const enabled =
+      settings.autoPage &&
+      !!container &&
+      !!this.adapter.tab(new URL(location.href)) &&
+      !!this.adapter.nextPageUrl(document, location.href);
     document.documentElement.toggleAttribute(PAGER.active, enabled);
     if (!enabled) {
       this.reset(null);

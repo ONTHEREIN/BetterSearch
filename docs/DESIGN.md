@@ -22,7 +22,7 @@ BetterSearch 是一个**油猴脚本（userscript）**，增强 Google、Bing、
 | 版本 | 内容 |
 |---|---|
 | **v0.1** | 三个引擎的适配器；去广告；屏蔽规则引擎（关键词 + 域名 + 订阅列表）；防仿冒（启发式规则 + 黑名单）；拦截重定向；自动翻页；结果区布局和主题（2 到 3 个预设）；设置面板 |
-| v0.2 | ~~官网核对（已知网站名单）~~；~~自定义 CSS 和主题分享~~；~~紧凑密度~~（v0.1 已有）；更多 tab（优先「资讯 / 新闻」） |
+| v0.2 | ~~官网核对（已知网站名单）~~；~~自定义 CSS 和主题分享~~；~~紧凑密度~~（v0.1 已有）；更多 tab（~~Google、Bing 资讯~~，百度资讯待做） |
 | v0.3 | AI 功能：网站总结、搜索总结和问答（BYOK）；AI 栏；引擎自带 AI 回答可以移到 AI 栏 |
 | 之后 | WebDAV 同步（可提前）、触屏专项优化、浏览器扩展版（可选） |
 
@@ -66,10 +66,11 @@ core 层只通过一层很薄的接口访问平台能力（`KeyValueStore`，以
 
 每个引擎一个适配器，统一实现以下职责：
 
-- `match(url)`：判断当前页面是不是这个引擎的搜索页，以及当前是哪个 tab（按 URL 参数判断，**不按 tab 的位置判断**）。
+- `tab(url)`：判断当前页面是不是这个引擎的搜索页，以及是哪个 tab（`web` 或 `news`，其他页面返回 null）。按 URL 参数判断，**不按 tab 的位置判断**。
 - `collectBlocks(root)`：找出所有区块，并给每个区块标注类型。
 - `extractResult(block)`：从普通结果中提取标题、显示的域名、真实 URL、摘要、日期。
-- `nextPageUrl(doc)`：自动翻页用。
+- `nextPageUrl(doc)`：自动翻页用。返回 null 时不开启自动翻页：可能是最后一页，也可能是引擎自己会滚动加载（Bing 资讯）。
+- `sideColumn(root)`、`leftColumn(root)`：结果两侧的栏。布局加宽并居中结果时，给右栏留位置，左移不越过左栏。
 - `isChallenge(doc)`：判断是不是人机验证页（Google `/sorry`、百度 `wappass`）。
 
 区块类型：`organic`（普通结果）、`ad`、`related`、`news`、`video`、`ai-answer`、`paa`（相关问题）、`knowledge`、`widget`（天气、汇率等）、`unknown`。
@@ -80,7 +81,7 @@ core 层只通过一层很薄的接口访问平台能力（`KeyValueStore`，以
 
 ### 4.2 页面变化监听
 
-百度和 Google 在一些情况下，换搜索词时只局部更新页面，不重新加载。所以脚本也会在引擎的非结果页（比如百度首页）上运行，监听 `<body>` 的 DOM 变化，每次处理前先用 `matches(location)` 确认当前是结果页。
+百度和 Google 在一些情况下，换搜索词时只局部更新页面，不重新加载。所以脚本也会在引擎的非结果页（比如百度首页）上运行，监听 `<body>` 的 DOM 变化，每次处理前先用 `tab(location)` 确认当前是结果页。
 
 处理逻辑直接放在 MutationObserver 的回调里执行，**不要用 `requestAnimationFrame` 节流**：后台标签页里 rAF 会暂停，结果就会一直不被处理。MutationObserver 的回调本身就是批量触发的，而且在页面绘制之前执行。处理逻辑是幂等的，脚本自己造成的 DOM 变化只会再触发一次处理，然后就会停下来。
 
@@ -99,6 +100,7 @@ core 层只通过一层很薄的接口访问平台能力（`KeyValueStore`，以
 - 拦截重定向：**普通结果的 `href` 是 `/goto?url=CAES…` 这种加密跳转**（2026-11-07 抓取的快照中确认），本地无法直接解码。真实域名要从结果里显示的 URL 文本（`cite`）中读取，处理方式与百度相同（见 6.3）。另外还要去掉 `ping` 属性和 `mousedown` 上报。
 - 每条普通结果外层都有 `[data-rpos]` 容器，当前适配器按 `[data-rpos]` → `.MjjYud` → `[data-hveid]` 的顺序查找。但歌曲、专辑、相关问题等模块里面也有 `[data-rpos]`，所以适配器先识别模块，再在模块以外找普通结果。
 - 区块的最外层是 `.ULSxyf` 或 `.MjjYud`（可以互相嵌套）。模块特征：广告是 `#tads`、`#tadsb`、`#bottomads`、`#tvcap`、`[data-text-ad]`（经常存在但内容为空，要跳过）；AI 概览是 `#m-x-content`、`[data-subtree="aimc"]`，在 `#rso` 上方时外层是 `#Odp5De`；相关问题是 `.related-question-pair`、`[data-initq]`；知识类是 `[data-attrid^="kc:"]`；汇率是 `[data-attrid="Converter"]`；视频轮播是包含至少 2 个 `[data-vid]` 的区块；右侧知识面板是 `#rhs`；「用户还搜索了」是 `#bres`。
+- **新闻 tab（`tbm=nws`）**：每条新闻是 `[data-news-doc-id]`，10 条一起放在同一个 `.MjjYud` 里；标题是 `[role="heading"]`，来源只有名称（`.MgUUmf span`），链接也是 `/goto` 加密跳转，**拿不到域名**。所以只做布局和自动翻页（`#pnnext` 照常有）。
 - YouTube、Instagram、Reddit 这类结果显示的是站点名而不是网址，链接又是加密跳转，所以**拿不到域名**，暂时不能按域名屏蔽，要等「点击时解析」实现后才能处理。
 - 广告容器是 `#tads` 和 `#bottomads`。调研时用的日本 IP，没有出现广告，**需要在其他地区再验证**。
 
@@ -114,6 +116,7 @@ core 层只通过一层很薄的接口访问平台能力（`KeyValueStore`，以
 - `li.b_ans` 按内部特征细分：`.cht_ans_root` 是 AI 摘要，`.ans_nws` 是资讯，`.b_paa_item` 是相关问题，`#inline_rs`、`.b_rs`、`.richrswrapper` 是相关搜索，`#serpvidans`、`.b_vidAns` 是视频。
 - **`#b_pole` 里带 `.eu_promotedlabel` 的是推广**（比如搜「chrome 下载」时出现的「由 Microsoft 推广」的 Edge 广告），按广告处理；不带的按知识卡片处理。`#b_topw` 是知识卡片。
 - 品牌广告会出现在 `#b_results` 外面（比如搜 workbuddy 时），是一大块品牌横幅 **`.b_bza_pole_wrapper`**。2026-11-07 抓取的 6 份快照里都没有出现 `li.b_ad`，所以 `.b_ad`、`.b_adTop`、`.b_adBottom` 这几个选择器**还没有经过实际验证**。
+- **资讯 tab 只有国际版有**：cn.bing.com 访问 `/news/search` 会跳回首页；www.bing.com 的是 `/news/search`（国内 IP 要带 `ensearch=1`）。结构和网页 tab 完全不同：每条是 `#algocore > .news-card`，`data-url` 是真实地址，`data-author` 是来源名称。左侧有分类栏 `.news-side-nav`。**没有分页链接，往下滚动时自己加载**（`/news/infinitescrollajax`），所以不启用自动翻页。
 - 拦截重定向：2026-11-07 的快照中，结果链接**本身就是真实地址**。另外 `bing.com/ck/a?...&u=a1<base64url>` 形式的链接可以在本地解码，遇到时再处理。
 
 ### 5.3 百度

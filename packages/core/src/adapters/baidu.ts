@@ -67,6 +67,10 @@ export const baiduAdapter: EngineAdapter = {
     return root.querySelector<HTMLElement>('#content_right');
   },
 
+  leftColumn(root) {
+    return null;
+  },
+
   injectedModules: '',
   paginationSelector: '#page',
 
@@ -89,10 +93,10 @@ export const baiduAdapter: EngineAdapter = {
     return url.searchParams.get('wd') ?? url.searchParams.get('word') ?? '';
   },
 
-  matches(url) {
-    if (!HOST.test(url.hostname) || url.pathname !== '/s') return false;
+  tab(url) {
+    if (!HOST.test(url.hostname) || url.pathname !== '/s') return null;
     // tn=news is the news tab; pd selects other verticals such as notes.
-    return url.searchParams.get('tn') !== 'news' && !url.searchParams.has('pd');
+    return url.searchParams.get('tn') !== 'news' && !url.searchParams.has('pd') ? 'web' : null;
   },
 
   collectBlocks(root) {

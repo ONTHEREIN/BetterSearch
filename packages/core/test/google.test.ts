@@ -5,17 +5,18 @@ import { expectNotNested, loadFixture as load, summarize as summarizeWith } from
 const loadFixture = (name: string) => load('google', name);
 const summarize = (blocks: Block[]) => summarizeWith(googleAdapter, blocks);
 
-describe('googleAdapter.matches', () => {
+describe('googleAdapter.tab', () => {
   it.each([
-    ['https://www.google.com/search?q=a', true],
-    ['https://www.google.com.hk/search?q=a', true],
-    ['https://www.google.co.jp/search?q=a&udm=14', true],
-    ['https://www.google.com/search?q=a&udm=2', false],
-    ['https://www.google.com/search?q=a&tbm=nws', false],
-    ['https://www.google.com/maps?q=a', false],
-    ['https://www.notgoogle.com/search?q=a', false],
+    ['https://www.google.com/search?q=a', 'web'],
+    ['https://www.google.com.hk/search?q=a', 'web'],
+    ['https://www.google.co.jp/search?q=a&udm=14', 'web'],
+    ['https://www.google.com/search?q=a&udm=2', null],
+    ['https://www.google.com/search?q=a&tbm=nws', 'news'],
+    ['https://www.google.com/search?q=a&tbm=isch', null],
+    ['https://www.google.com/maps?q=a', null],
+    ['https://www.notgoogle.com/search?q=a', null],
   ])('%s -> %s', (url, expected) => {
-    expect(googleAdapter.matches(new URL(url))).toBe(expected);
+    expect(googleAdapter.tab(new URL(url))).toBe(expected);
   });
 });
 
@@ -106,5 +107,23 @@ describe('googleAdapter.extractResult', () => {
   it('returns null for non-organic blocks', () => {
     const blocks = googleAdapter.collectBlocks(loadFixture('workbuddy.html'));
     expect(googleAdapter.extractResult(blocks.find((b) => b.type === 'ad')!)).toBeNull();
+  });
+});
+
+describe('the news tab', () => {
+  const doc = loadFixture('news-huawei.html');
+  const blocks = googleAdapter.collectBlocks(doc);
+
+  it('finds each story as a result without a host', () => {
+    const results = blocks.filter((b) => b.type === 'organic').map((b) => googleAdapter.extractResult(b));
+    expect(results).toHaveLength(10);
+    expect(results[0]).toMatchObject({ title: '华为员工的朋友圈，什么水平？', url: null, host: null, prominent: false });
+    expect(results.every((r) => r?.href.startsWith('/goto?url='))).toBe(true);
+    expect(blocks.filter((b) => b.type === 'unknown')).toEqual([]);
+    expectNotNested(blocks);
+  });
+
+  it('finds the next page', () => {
+    expect(googleAdapter.nextPageUrl(doc, 'https://www.google.com/search?q=x&tbm=nws')).toContain('tbm=nws');
   });
 });

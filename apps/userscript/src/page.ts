@@ -12,6 +12,7 @@ import {
   type RuleSet,
   type Settings,
   type SiteDirectory,
+  type Tab,
 } from '@bettersearch/core';
 import { Grid } from './layout';
 import { PAGER } from './pager';
@@ -78,7 +79,8 @@ export class Page {
     // The script also runs on the engine's other pages (home, other tabs),
     // which can turn into a results page without a reload.
     const url = new URL(location.href);
-    if (!this.adapter.matches(url)) return;
+    const tab = this.adapter.tab(url);
+    if (!tab) return;
     const query = this.adapter.query(url);
 
     if (this.settings.layout && this.adapter.injectedModules) {
@@ -104,7 +106,8 @@ export class Page {
     const container = this.adapter.resultsContainer(document);
     const plan = this.settings.layout && container ? planGrid(container, blocks) : null;
     this.cellOf = (el) => plan?.cells.get(el) ?? el;
-    this.grid.apply(container, this.adapter.sideColumn(document), plan, new Set(results.keys()), this.settings);
+    const columns = { side: this.adapter.sideColumn(document), left: this.adapter.leftColumn(document) };
+    this.grid.apply(container, columns, plan, new Set(results.keys()), this.settings);
     this.collapseAiAnswers(blocks.filter((b) => b.type === 'ai-answer').map((b) => b.el));
 
     // Runs of blocked results with nothing visible between them share a notice.
@@ -113,7 +116,7 @@ export class Page {
     let run: Result[] | null = null;
     for (const block of blocks) {
       const result = results.get(block.el);
-      if (result) this.decorate(result, query, page);
+      if (result) this.decorate(result, query, page, tab);
       if (result && this.isBlocked(result)) {
         if (!run) runs.push((run = []));
         run.push(result);
@@ -138,12 +141,15 @@ export class Page {
     return this.rules.blocks(info.url ?? `https://${info.host}/`);
   }
 
-  /** What every result gets, blocked or not. */
-  private decorate({ el, info }: Result, query: string, page: ResultInfo[]): void {
+  /**
+   * What every result gets, blocked or not. A news story is not a site's own
+   * page, so the official-site and lookalike checks are for the web tab only.
+   */
+  private decorate({ el, info }: Result, query: string, page: ResultInfo[], tab: Tab): void {
     el.classList.add(CLASSES.result);
     if (this.settings.cleanLinks) this.cleanLinks(el, info);
     this.setLinkTargets(el);
-    const sites = this.hooks.sites();
+    const sites = tab === 'web' ? this.hooks.sites() : null;
     // undefined while the domain's shard downloads; the directory re-applies when it arrives.
     const site = info.host && sites ? sites.peek(info.host) : null;
     const official = site ? officialFor(site, query) : null;
@@ -154,6 +160,7 @@ export class Page {
     this.cellOf(el).classList.toggle(CLASSES.pinned, !!official && this.settings.pinOfficial && firstPage);
     if (!info.host) return;
     this.ensureBlockButton(el, info.host);
+    if (tab !== 'web') return;
     const report = () => window.open(reportUrl(info.host!, query, this.adapter.id), '_blank', 'noopener');
     this.ensureReportButton(el, info.host, report);
     const warning = checkLookalike(info, query, page, { known: sites ? (site === undefined ? undefined : !!site) : null });

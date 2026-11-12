@@ -1,4 +1,4 @@
-export type { Block, BlockType, EngineAdapter, EngineId, KeyValueStore, ResultInfo } from './types';
+export type { Block, BlockType, EngineAdapter, EngineId, KeyValueStore, ResultInfo, Tab } from './types';
 export { baiduAdapter } from './adapters/baidu';
 export { bingAdapter } from './adapters/bing';
 export { googleAdapter } from './adapters/google';

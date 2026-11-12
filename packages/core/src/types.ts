@@ -1,5 +1,8 @@
 export type EngineId = 'google' | 'bing' | 'baidu';
 
+/** The results tabs BetterSearch works on: "all / web" and news. */
+export type Tab = 'web' | 'news';
+
 export type BlockType =
   | 'organic'
   | 'ad'
@@ -36,8 +39,8 @@ export interface EngineAdapter {
   id: EngineId;
   /** True for any page on this engine's search host, results or not. */
   ownsHost(hostname: string): boolean;
-  /** True when `url` is this engine's "all / web" results tab. */
-  matches(url: URL): boolean;
+  /** Which supported results tab `url` is; null for any other page. */
+  tab(url: URL): Tab | null;
   /** The search terms in a results URL. */
   query(url: URL): string;
   /**
@@ -49,6 +52,8 @@ export interface EngineAdapter {
   resultsContainer(root: ParentNode): HTMLElement | null;
   /** The engine's right-hand column, if any. */
   sideColumn(root: ParentNode): HTMLElement | null;
+  /** A column left of the results, if any; the widened results stay clear of it. */
+  leftColumn(root: ParentNode): HTMLElement | null;
   /** Absolute URL of the next results page, or null on the last page. */
   nextPageUrl(root: ParentNode, base: string): string | null;
   /**

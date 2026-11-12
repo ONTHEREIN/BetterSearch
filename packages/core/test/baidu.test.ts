@@ -5,16 +5,16 @@ import { expectNotNested, loadFixture, summarize } from './fixtures';
 const blocksOf = (name: string) => baiduAdapter.collectBlocks(loadFixture('baidu', name));
 const summaryOf = (name: string) => summarize(baiduAdapter, blocksOf(name));
 
-describe('baiduAdapter.matches', () => {
+describe('baiduAdapter.tab', () => {
   it.each([
-    ['https://www.baidu.com/s?wd=a', true],
-    ['https://www.baidu.com/s?wd=a&tn=baiduhome_pg', true],
-    ['https://www.baidu.com/s?word=a&tn=news', false],
-    ['https://www.baidu.com/s?wd=a&pd=note', false],
-    ['https://www.baidu.com/', false],
-    ['https://image.baidu.com/search/index?word=a', false],
+    ['https://www.baidu.com/s?wd=a', 'web'],
+    ['https://www.baidu.com/s?wd=a&tn=baiduhome_pg', 'web'],
+    ['https://www.baidu.com/s?word=a&tn=news', null],
+    ['https://www.baidu.com/s?wd=a&pd=note', null],
+    ['https://www.baidu.com/', null],
+    ['https://image.baidu.com/search/index?word=a', null],
   ])('%s -> %s', (url, expected) => {
-    expect(baiduAdapter.matches(new URL(url))).toBe(expected);
+    expect(baiduAdapter.tab(new URL(url))).toBe(expected);
   });
 });
 
