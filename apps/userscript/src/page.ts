@@ -12,8 +12,10 @@ import {
   type RuleSet,
   type Settings,
   type SiteDirectory,
+  type Source,
   type Tab,
 } from '@bettersearch/core';
+import type { Assistant } from './assistant';
 import { Grid } from './layout';
 import { PAGER } from './pager';
 import { CLASSES } from './style';
@@ -24,6 +26,9 @@ const ORIGINAL_TARGET = 'data-bs-target';
 const REPORT_ICON =
   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 21V4"></path><path d="M5 4h11l-2 4 2 4H5"></path></svg>';
 
+const SUMMARY_ICON =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg>';
+
 const BLOCK_ICON =
   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M5.6 5.6l12.8 12.8"></path></svg>';
 
@@ -31,7 +36,11 @@ export interface PageHooks {
   onBlockSite(host: string): void;
   /** The known-sites list, while the official-site check is on. */
   sites(): SiteDirectory | null;
+  assistant: Assistant;
 }
+
+/** Results given to the AI for a summary. */
+const MAX_SOURCES = 10;
 
 interface Result {
   el: HTMLElement;
@@ -54,6 +63,8 @@ export class Page {
   private readonly notices = new WeakMap<HTMLElement, HTMLElement>();
   private readonly warnings = new WeakMap<HTMLElement, HTMLElement>();
   private readonly badges = new WeakMap<HTMLElement, HTMLElement>();
+  /** Results not blocked, in page order, as of the last pass. */
+  private visible: Result[] = [];
   /** Blocked results the user chose to show anyway. */
   private readonly revealed = new WeakSet<HTMLElement>();
   private readonly aiBars = new WeakMap<HTMLElement, HTMLElement>();
@@ -80,7 +91,10 @@ export class Page {
     // which can turn into a results page without a reload.
     const url = new URL(location.href);
     const tab = this.adapter.tab(url, document);
-    if (!tab) return;
+    if (!tab) {
+      this.hooks.assistant.sync(null, '');
+      return;
+    }
     const query = this.adapter.query(url);
 
     if (this.settings.layout && this.adapter.injectedModules) {
@@ -109,6 +123,7 @@ export class Page {
     const columns = { side: this.adapter.sideColumn(document), left: this.adapter.leftColumn(document) };
     this.grid.apply(container, columns, plan, new Set(results.keys()), this.settings);
     this.collapseAiAnswers(blocks.filter((b) => b.type === 'ai-answer').map((b) => b.el));
+    this.hooks.assistant.sync(container, query);
 
     // Runs of blocked results with nothing visible between them share a notice.
     // Ads do not break a run: they are hidden too.
@@ -126,6 +141,7 @@ export class Page {
     }
 
     const blocked = new Set(runs.flat().map((r) => r.el));
+    this.visible = [...results.values()].filter((r) => !blocked.has(r.el));
     for (const el of results.keys()) this.cellOf(el).classList.toggle(CLASSES.blocked, blocked.has(el));
     const active = new Set<HTMLElement>();
     if (this.settings.blockAction === 'collapse') {
@@ -149,6 +165,7 @@ export class Page {
     el.classList.add(CLASSES.result);
     if (this.settings.cleanLinks) this.cleanLinks(el, info);
     this.setLinkTargets(el);
+    this.showSummaryButton(el, info);
     const sites = tab === 'web' ? this.hooks.sites() : null;
     // undefined while the domain's shard downloads; the directory re-applies when it arrives.
     const site = info.host && sites ? sites.peek(info.host) : null;
@@ -217,6 +234,47 @@ export class Page {
       else link.removeAttribute('target');
       if (target === '_blank' && !link.relList.contains('noopener')) link.relList.add('noopener');
     }
+  }
+
+  /** What the AI gets for a summary of the results on the page. */
+  sources(): Source[] {
+    return this.visible.slice(0, MAX_SOURCES).map((r) => this.sourceOf(r));
+  }
+
+  private sourceOf({ el, info }: Result): Source {
+    const copy = el.cloneNode(true) as HTMLElement;
+    // Our additions, the engine's inline styles and scripts, and the URL line: the URL is sent anyway.
+    const skip = `.${CLASSES.blockButton}, .${CLASSES.official}, .${CLASSES.warning}, script, style, noscript, cite`;
+    for (const el of copy.querySelectorAll(skip)) el.remove();
+    let snippet = (copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+    if (snippet.startsWith(info.title)) snippet = snippet.slice(info.title.length).trim();
+    return { title: info.title, url: info.url ?? new URL(info.href, location.href).href, snippet };
+  }
+
+  /** Only where the page reveals the real address: an engine redirect is not the page. */
+  private showSummaryButton(el: HTMLElement, info: ResultInfo): void {
+    let button = el.querySelector<HTMLButtonElement>(`:scope > .${CLASSES.summaryButton}`);
+    const show = !!info.url && this.hooks.assistant.ready();
+    if (!show) {
+      if (button) button.hidden = true;
+      return;
+    }
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = `${CLASSES.blockButton} ${CLASSES.summaryButton}`;
+      button.title = t('assistant.summaryButton');
+      button.setAttribute('aria-label', button.title);
+      button.innerHTML = SUMMARY_ICON;
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const result = this.visible.find((r) => r.el === el) ?? { el, info };
+        this.hooks.assistant.summarizePage(this.sourceOf(result));
+      });
+      el.prepend(button);
+    }
+    button.hidden = false;
   }
 
   private ensureBlockButton(result: HTMLElement, host: string): void {

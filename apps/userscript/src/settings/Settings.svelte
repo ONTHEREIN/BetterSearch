@@ -1,5 +1,14 @@
 <script lang="ts">
-  import { exportTheme, parseTheme, removeRule, t, type Settings, type Subscription } from '@bettersearch/core';
+  import {
+    AI_PROVIDERS,
+    exportTheme,
+    parseTheme,
+    removeRule,
+    t,
+    type AiConfig,
+    type Settings,
+    type Subscription,
+  } from '@bettersearch/core';
   import type { SubscriptionStatus } from './panel';
 
   interface Props {
@@ -8,9 +17,10 @@
     onclose: () => void;
     refreshSubscriptions: () => Promise<void>;
     subscriptionStatus: (sub: Subscription) => SubscriptionStatus;
+    listModels: (config: AiConfig) => Promise<string[]>;
   }
 
-  let { settings: initial, onchange, onclose, refreshSubscriptions, subscriptionStatus }: Props = $props();
+  let { settings: initial, onchange, onclose, refreshSubscriptions, subscriptionStatus, listModels }: Props = $props();
   // The panel edits its own copy, taken once when it opens.
   // svelte-ignore state_referenced_locally
   let settings = $state({ ...initial });
@@ -63,6 +73,32 @@
     if (!status.fetchedAt) return t('subs.notFetched');
     const when = new Date(status.fetchedAt).toLocaleString();
     return t('subs.status', { count: status.ruleCount, when }) + (status.error ? t('subs.lastFailed') : '');
+  }
+
+  let provider = $derived(AI_PROVIDERS.find((p) => p.id === settings.aiProvider) ?? AI_PROVIDERS.at(-1)!);
+  let models = $state<string[]>([]);
+  let modelsMessage = $state('');
+
+  function chooseProvider() {
+    if (provider.id !== 'custom') {
+      settings.aiBaseUrl = provider.baseUrl;
+      settings.aiModel = provider.model;
+    }
+    // A key belongs to one service; never send it to the next one.
+    settings.aiApiKey = '';
+    models = [];
+    modelsMessage = '';
+    commit();
+  }
+
+  async function loadModels() {
+    modelsMessage = '';
+    try {
+      models = await listModels({ baseUrl: settings.aiBaseUrl, apiKey: settings.aiApiKey, model: settings.aiModel });
+      modelsMessage = t('aiset.models', { count: models.length });
+    } catch (error) {
+      modelsMessage = t('aiset.modelsFailed', { error: (error as Error).message });
+    }
   }
 
   /** Pasted theme JSON while importing, null otherwise. */
@@ -246,6 +282,42 @@
       </label>
       <p class="hint">{t('official.proxyHint')}</p>
     {/if}
+  </section>
+
+  <section>
+    <h3>{t('aiset.title')}</h3>
+    <p class="hint">{t('aiset.hint')}</p>
+    <label class="stack">
+      <span>{t('aiset.provider')}</span>
+      <select bind:value={settings.aiProvider} onchange={chooseProvider}>
+        {#each AI_PROVIDERS as p (p.id)}
+          <option value={p.id}>{p.id === 'custom' ? t('aiset.custom') : p.name}</option>
+        {/each}
+      </select>
+    </label>
+    <label class="stack">
+      <span>{t('aiset.key')}</span>
+      <input class="text" type="password" autocomplete="off" spellcheck="false" bind:value={settings.aiApiKey} onchange={commit} />
+    </label>
+    {#if provider.keyUrl}
+      <p class="hint"><a href={provider.keyUrl} target="_blank" rel="noopener noreferrer">{t('aiset.getKey')}</a></p>
+    {/if}
+    <label class="stack">
+      <span>{t('aiset.baseUrl')}</span>
+      <input class="text" type="url" placeholder="http://localhost:11434/v1" bind:value={settings.aiBaseUrl} onchange={commit} />
+    </label>
+    <label class="stack">
+      <span>{t('aiset.model')}</span>
+      <input class="text" list="bs-models" spellcheck="false" bind:value={settings.aiModel} onchange={commit} />
+    </label>
+    <datalist id="bs-models">
+      {#each models as model (model)}<option value={model}></option>{/each}
+    </datalist>
+    <div class="actions">
+      <button type="button" onclick={loadModels}>{t('aiset.listModels')}</button>
+    </div>
+    {#if modelsMessage}<p class="hint" role="status">{modelsMessage}</p>{/if}
+    <p class="hint">{t('aiset.firstRequest')}</p>
   </section>
 
   <section>

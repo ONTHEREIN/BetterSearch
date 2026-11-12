@@ -2,6 +2,28 @@ export type { Block, BlockType, EngineAdapter, EngineId, KeyValueStore, ResultIn
 export { baiduAdapter } from './adapters/baidu';
 export { bingAdapter } from './adapters/bing';
 export { googleAdapter } from './adapters/google';
+export {
+  AI_PROVIDERS,
+  aiReady,
+  ChatStream,
+  chatRequest,
+  decodeHtml,
+  errorMessage,
+  extractPageText,
+  htmlCharset,
+  modelsRequest,
+  pagePrompt,
+  parseAnswer,
+  parseModels,
+  searchPrompt,
+  type AiConfig,
+  type AiProvider,
+  type AnswerBlock,
+  type AnswerInline,
+  type ChatMessage,
+  type HttpRequest,
+  type Source,
+} from './ai';
 export { autoColumns, gridSize, planGrid, type GridPlan } from './layout';
 export { stripTracking } from './links';
 export { detectLocale, setLocale, t, type Locale, type MessageKey } from './i18n';

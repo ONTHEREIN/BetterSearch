@@ -6,6 +6,8 @@ export const CLASSES = {
   blocked: 'bs-blocked',
   blockButton: 'bs-block-btn',
   reportButton: 'bs-report-btn',
+  summaryButton: 'bs-summary-btn',
+  assistant: 'bs-assistant',
   reportLink: 'bs-report-link',
   notice: 'bs-notice',
   suspicious: 'bs-suspicious',
@@ -42,6 +44,12 @@ const CSS = `
 .${C.blockButton}:focus-visible { outline: 2px solid #4c7cf0; outline-offset: 1px; }
 @media (hover: none) { .${C.blockButton} { opacity: .6; } }
 .${C.blockButton}.${C.reportButton} { right: 32px; }
+/* Left of the block and report buttons; the report button is on the web tab only. */
+.${C.blockButton}.${C.summaryButton} { right: 64px; }
+.${C.result}:not(:has(> .${C.reportButton})) > .${C.summaryButton} { right: 32px; }
+.${C.blockButton}[hidden] { display: none; }
+
+.${C.assistant} { display: block; margin: 0 0 var(--bs-gap, 16px); }
 .${C.reportLink} {
   flex: none; margin-left: auto; padding: 0; border: 0; background: none;
   color: inherit; font: inherit; text-decoration: underline; cursor: pointer;

@@ -1,4 +1,4 @@
-import { t, type Settings, type Subscription } from '@bettersearch/core';
+import { t, type AiConfig, type Settings, type Subscription } from '@bettersearch/core';
 import { mount, unmount } from 'svelte';
 import SettingsPanel from './Settings.svelte';
 
@@ -16,6 +16,8 @@ export interface PanelOptions {
   getTheme(): 'dark' | 'light';
   refreshSubscriptions(): Promise<void>;
   subscriptionStatus(sub: Subscription): SubscriptionStatus;
+  /** The service's model ids; throws with the reason when it cannot list them. */
+  listModels(config: AiConfig): Promise<string[]>;
   onChange(settings: Settings): void;
 }
 
@@ -44,6 +46,7 @@ export function openSettings(options: PanelOptions): void {
       onclose: closeSettings,
       refreshSubscriptions: options.refreshSubscriptions,
       subscriptionStatus: options.subscriptionStatus,
+      listModels: options.listModels,
     },
   });
   open = { host, app };

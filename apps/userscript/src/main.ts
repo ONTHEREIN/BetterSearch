@@ -1,5 +1,8 @@
 import {
   adapterForHost,
+  errorMessage,
+  modelsRequest,
+  parseModels,
   addRule,
   cachedList,
   combinedRules,
@@ -19,11 +22,12 @@ import {
   type EngineAdapter,
   type Settings,
 } from '@bettersearch/core';
+import { Assistant } from './assistant';
 import { LAYOUT_CSS } from './layout';
 import { Page } from './page';
 import { Pager, pagerCss } from './pager';
-import { fetchText, registerMenuCommand, store } from './platform';
-import { addGearButton, toggleSettings, type PanelOptions } from './settings/panel';
+import { fetchText, registerMenuCommand, sendRequest, store } from './platform';
+import { addGearButton, openSettings, toggleSettings, type PanelOptions } from './settings/panel';
 import { injectStyle, NO_ADS_CLASS, setCustomCss } from './style';
 import { syncTheme } from './theme';
 import { showToast } from './toast';
@@ -38,8 +42,15 @@ function run(adapter: EngineAdapter): void {
     () => page.apply(),
   );
 
+  const assistant = new Assistant({
+    settings: () => settings,
+    sources: () => page.sources(),
+    openSettings: () => openSettings(panel),
+  });
+
   const page = new Page(adapter, {
     sites: () => (settings.markOfficial ? sites : null),
+    assistant,
     onBlockSite(host) {
       const rule = siteRule(host);
       update({ ...settings, rules: addRule(settings.rules, rule) });
@@ -71,6 +82,11 @@ function run(adapter: EngineAdapter): void {
       if (added) void refreshSubscriptions();
     },
     refreshSubscriptions: () => refreshSubscriptions(true),
+    async listModels(config) {
+      const { status, body } = await sendRequest(modelsRequest(config));
+      if (status < 200 || status >= 300) throw new Error(errorMessage(body) ?? `HTTP ${status}`);
+      return parseModels(body);
+    },
     subscriptionStatus: (sub) => {
       const list = cachedList(store, sub);
       const failure = lastFailure(store, sub);

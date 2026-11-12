@@ -41,6 +41,12 @@ export interface Settings {
   rules: string;
   /** Rule lists fetched from the web, in the same syntax. */
   subscriptions: Subscription[];
+  /** An `AI_PROVIDERS` id; the base URL and model below start from its preset. */
+  aiProvider: string;
+  aiBaseUrl: string;
+  aiModel: string;
+  /** Kept only in the userscript's storage, and sent only to `aiBaseUrl`. */
+  aiApiKey: string;
 }
 
 export const SETTINGS_VERSION = 2;
@@ -64,6 +70,10 @@ export const DEFAULT_SETTINGS: Settings = {
   autoPageLimit: 5,
   rules: '',
   subscriptions: [],
+  aiProvider: 'deepseek',
+  aiBaseUrl: 'https://api.deepseek.com/v1',
+  aiModel: 'deepseek-chat',
+  aiApiKey: '',
 };
 
 const KEY = 'settings';
