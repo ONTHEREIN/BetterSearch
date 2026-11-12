@@ -79,7 +79,7 @@ export class Page {
     // The script also runs on the engine's other pages (home, other tabs),
     // which can turn into a results page without a reload.
     const url = new URL(location.href);
-    const tab = this.adapter.tab(url);
+    const tab = this.adapter.tab(url, document);
     if (!tab) return;
     const query = this.adapter.query(url);
 

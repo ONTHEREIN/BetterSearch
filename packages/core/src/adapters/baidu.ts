@@ -14,6 +14,7 @@ const TEMPLATES: Record<string, BlockType> = {
   recommend_list: 'related',
   recommend_list_san: 'related',
   rel_base_realtime: 'news',
+  'news-normal': 'organic',
   sg_kg_entity_san: 'knowledge',
   bk_polysemy: 'knowledge',
   short_video: 'video',
@@ -30,10 +31,21 @@ const TEMPLATES: Record<string, BlockType> = {
 };
 
 const AD_LINK = 'a[href*="baidu.php?"]';
+/** The brand zone at the top of the news tab. */
+const BRAND_AD = '.ecom_pingzhuan';
+/**
+ * Baidu removes tn=news from the address once the news tab has loaded; its
+ * page links and stories still show it.
+ */
+const NEWS_PAGE = '#page a[href*="tn=news&"], #content_left > [tpl="news-normal"]';
 
 function classify(el: HTMLElement): BlockType {
   const tpl = el.getAttribute('tpl');
-  if (!tpl) return el.querySelector(AD_LINK) ? 'ad' : 'unknown';
+  if (!tpl) {
+    if (el.matches(BRAND_AD) || el.querySelector(AD_LINK)) return 'ad';
+    // Older-style stories on the news tab (Baike, Baijiahao) carry no template.
+    return el.matches('.result') && el.querySelector('h3 a') ? 'organic' : 'unknown';
+  }
   return TEMPLATES[tpl] ?? 'unknown';
 }
 
@@ -50,10 +62,21 @@ function realUrl(el: HTMLElement): URL | null {
   }
 }
 
+/** `href` when it goes straight to the site rather than through Baidu's redirect. */
+function directUrl(href: string | null): URL | null {
+  if (!href || !/^https?:\/\//.test(href)) return null;
+  try {
+    const url = new URL(href);
+    return HOST.test(url.hostname) ? null : url;
+  } catch {
+    return null;
+  }
+}
+
 export const baiduAdapter: EngineAdapter = {
   id: 'baidu',
   // #top-ad is the full-width brand banner above the results.
-  adSelectors: ['#top-ad', `#content_left > div:not([tpl]):has(${AD_LINK})`],
+  adSelectors: ['#top-ad', `#content_left > ${BRAND_AD}`, `#content_left > div:not([tpl]):has(${AD_LINK})`],
 
   ownsHost(hostname) {
     return HOST.test(hostname);
@@ -93,10 +116,10 @@ export const baiduAdapter: EngineAdapter = {
     return url.searchParams.get('wd') ?? url.searchParams.get('word') ?? '';
   },
 
-  tab(url) {
-    if (!HOST.test(url.hostname) || url.pathname !== '/s') return null;
-    // tn=news is the news tab; pd selects other verticals such as notes.
-    return url.searchParams.get('tn') !== 'news' && !url.searchParams.has('pd') ? 'web' : null;
+  tab(url, root) {
+    // pd selects other verticals such as notes.
+    if (!HOST.test(url.hostname) || url.pathname !== '/s' || url.searchParams.has('pd')) return null;
+    return url.searchParams.get('tn') === 'news' || root.querySelector(NEWS_PAGE) ? 'news' : 'web';
   },
 
   collectBlocks(root) {
@@ -113,7 +136,7 @@ export const baiduAdapter: EngineAdapter = {
     if (block.type !== 'organic') return null;
     const link = block.el.querySelector('h3 a');
     if (!link) return null;
-    const url = realUrl(block.el);
+    const url = realUrl(block.el) ?? directUrl(link.getAttribute('href'));
     const host = url?.hostname ?? hostFromDisplayUrl(block.el.querySelector('[class*="showurl"]')?.textContent);
     // Baidu badges sites it verified as official with a bare "官方" label.
     const prominent = [...block.el.querySelectorAll('span, a, div')].some(

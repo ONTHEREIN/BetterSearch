@@ -59,7 +59,7 @@ export class Pager {
     const enabled =
       settings.autoPage &&
       !!container &&
-      !!this.adapter.tab(new URL(location.href)) &&
+      !!this.adapter.tab(new URL(location.href), document) &&
       !!this.adapter.nextPageUrl(document, location.href);
     document.documentElement.toggleAttribute(PAGER.active, enabled);
     if (!enabled) {

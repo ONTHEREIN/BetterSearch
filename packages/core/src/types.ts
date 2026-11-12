@@ -39,8 +39,11 @@ export interface EngineAdapter {
   id: EngineId;
   /** True for any page on this engine's search host, results or not. */
   ownsHost(hostname: string): boolean;
-  /** Which supported results tab `url` is; null for any other page. */
-  tab(url: URL): Tab | null;
+  /**
+   * Which supported results tab the page at `url` is; null for any other page.
+   * Decided by the URL, except where the engine rewrites it (Baidu news).
+   */
+  tab(url: URL, root: ParentNode): Tab | null;
   /** The search terms in a results URL. */
   query(url: URL): string;
   /**

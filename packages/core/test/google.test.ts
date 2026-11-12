@@ -16,7 +16,7 @@ describe('googleAdapter.tab', () => {
     ['https://www.google.com/maps?q=a', null],
     ['https://www.notgoogle.com/search?q=a', null],
   ])('%s -> %s', (url, expected) => {
-    expect(googleAdapter.tab(new URL(url))).toBe(expected);
+    expect(googleAdapter.tab(new URL(url), document)).toBe(expected);
   });
 });
 

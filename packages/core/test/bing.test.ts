@@ -14,7 +14,7 @@ describe('bingAdapter.tab', () => {
     ['https://www.bing.com/videos/search?q=a', null],
     ['https://www.google.com/search?q=a', null],
   ])('%s -> %s', (url, expected) => {
-    expect(bingAdapter.tab(new URL(url))).toBe(expected);
+    expect(bingAdapter.tab(new URL(url), document)).toBe(expected);
   });
 });
 

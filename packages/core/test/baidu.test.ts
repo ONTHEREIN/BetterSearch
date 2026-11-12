@@ -9,12 +9,12 @@ describe('baiduAdapter.tab', () => {
   it.each([
     ['https://www.baidu.com/s?wd=a', 'web'],
     ['https://www.baidu.com/s?wd=a&tn=baiduhome_pg', 'web'],
-    ['https://www.baidu.com/s?word=a&tn=news', null],
+    ['https://www.baidu.com/s?word=a&tn=news', 'news'],
     ['https://www.baidu.com/s?wd=a&pd=note', null],
     ['https://www.baidu.com/', null],
     ['https://image.baidu.com/search/index?word=a', null],
   ])('%s -> %s', (url, expected) => {
-    expect(baiduAdapter.tab(new URL(url))).toBe(expected);
+    expect(baiduAdapter.tab(new URL(url), document)).toBe(expected);
   });
 });
 
@@ -78,5 +78,37 @@ describe('baiduAdapter.adSelectors', () => {
     const byClassifier = baiduAdapter.collectBlocks(doc).filter((b) => b.type === 'ad').map((b) => b.el);
     expect(byClassifier.every((el) => bySelector.has(el))).toBe(true);
     expect(bySelector.size).toBe(byClassifier.length);
+  });
+});
+
+describe('the news tab', () => {
+  const doc = loadFixture('baidu', 'news-huawei.html');
+
+  it('is recognised after Baidu drops tn=news from the address', () => {
+    expect(baiduAdapter.tab(new URL('https://www.baidu.com/s?wd=%E5%8D%8E%E4%B8%BA'), doc)).toBe('news');
+    expect(baiduAdapter.tab(new URL('https://www.baidu.com/s?wd=workbuddy'), loadFixture('baidu', 'workbuddy.html'))).toBe('web');
+  });
+
+  it('reads stories with and without a template, and the brand zone as an ad', () => {
+    // The hot list in the right column comes first in the page.
+    expect(summaryOf('news-huawei.html')).toEqual([
+      'unknown',
+      'ad',
+      'organic:www.huawei.com',
+      'organic:baike.baidu.com',
+      'organic:author.baidu.com',
+      'organic:baike.baidu.com',
+      'organic:consumer.huawei.com',
+      'organic:baijiahao.baidu.com',
+      'organic:baijiahao.baidu.com',
+      'organic:baijiahao.baidu.com',
+      'organic:36kr.com',
+      'organic:tech.ifeng.com',
+    ]);
+    expectNotNested(blocksOf('news-huawei.html'));
+  });
+
+  it('finds the next page', () => {
+    expect(baiduAdapter.nextPageUrl(doc, 'https://www.baidu.com/s?wd=x')).toContain('tn=news');
   });
 });
