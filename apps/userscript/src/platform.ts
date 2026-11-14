@@ -1,10 +1,19 @@
 import { decodeHtml, type Fetcher, type HttpRequest, type KeyValueStore } from '@bettersearch/core';
-import { GM_getValue, GM_registerMenuCommand, GM_setValue, GM_xmlhttpRequest } from '$';
+import { GM_addValueChangeListener, GM_getValue, GM_registerMenuCommand, GM_setValue, GM_xmlhttpRequest } from '$';
 
 export const store: KeyValueStore = {
   get: (key, fallback) => GM_getValue(key, fallback),
   set: (key, value) => GM_setValue(key, value),
 };
+
+/** Calls `onChange` when another tab writes `key`. */
+export function onStoreChange(key: string, onChange: () => void): void {
+  // Not every mobile userscript host has it.
+  if (typeof GM_addValueChangeListener !== 'function') return;
+  GM_addValueChangeListener(key, (_key, _old, _value, remote) => {
+    if (remote) onChange();
+  });
+}
 
 export function registerMenuCommand(label: string, onClick: () => void): void {
   // Some mobile userscript hosts do not implement menus.
@@ -87,7 +96,7 @@ export function streamRequest(request: HttpRequest, onText: (received: string) =
   return { abort: () => abort(), done };
 }
 
-/** One request for a small response, e.g. a model list. */
+/** One request for a small response, e.g. a model list. Sends no cookies. */
 export function sendRequest(request: HttpRequest): Promise<{ status: number; body: string }> {
   return new Promise((resolve, reject) => {
     GM_xmlhttpRequest({
@@ -95,6 +104,7 @@ export function sendRequest(request: HttpRequest): Promise<{ status: number; bod
       url: request.url,
       headers: request.headers,
       data: request.body,
+      anonymous: true,
       timeout: FETCH_TIMEOUT_MS,
       onload: (r) => resolve({ status: r.status, body: r.responseText }),
       onerror: () => reject(new Error('network error')),

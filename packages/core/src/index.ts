@@ -68,6 +68,19 @@ export {
   type OpenLinks,
   type Settings,
 } from './settings';
+export {
+  applyDoc,
+  davRequest,
+  HISTORY_SIZE,
+  mergeDocs,
+  runSync,
+  sameContent,
+  stampLocal,
+  SyncError,
+  type Send,
+  type SyncDoc,
+  type WebDavConfig,
+} from './sync';
 export { exportTheme, parseTheme, themeCssProblem, type Theme, type ThemeProblem } from './theme';
 export { hostFromDisplayUrl, registrableDomain, siteOf, stripWww } from './url';
 

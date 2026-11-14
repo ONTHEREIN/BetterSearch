@@ -32,7 +32,13 @@
 
 只有点按钮时才会请求。搜索词、结果摘要和网页正文从你的浏览器直接发给所选服务，不经过 BetterSearch，费用按你自己账户计。第一次请求时脚本管理器会请你允许访问该服务的域名。
 
-## 仿冒站名单
+## 多设备同步
+
+在设置的「同步（WebDAV）」里填 WebDAV 地址、用户名和应用专用密码（坚果云：`https://dav.jianguoyun.com/dav/`；Nextcloud 等也可以）。同步的是设置、屏蔽规则和订阅地址，存在你自己网盘的 `BetterSearch` 文件夹里，保留最近 10 个旧版本（`BetterSearch/history/`）。AI 的 API Key 和 WebDAV 密码不同步。
+
+每一项设置、每一条规则各自记修改时间，两台设备改了不同的地方会合并，改了同一项则以后改的为准；在一台设备上删掉的规则不会被另一台带回来。一台设备第一次同步时，云端已有的设置优先，规则则两边合并。
+
+
 
 社区维护的仿冒站名单在 [bettersearch-rules](https://github.com/ONTHEREIN/bettersearch-rules)，默认不开启。想用的话，在设置的「屏蔽 → 订阅列表」里添加：
 

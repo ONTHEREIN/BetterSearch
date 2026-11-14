@@ -26,10 +26,11 @@ import { Assistant } from './assistant';
 import { LAYOUT_CSS } from './layout';
 import { Page } from './page';
 import { Pager, pagerCss } from './pager';
-import { fetchText, registerMenuCommand, sendRequest, store } from './platform';
-import { addGearButton, openSettings, toggleSettings, type PanelOptions } from './settings/panel';
+import { fetchText, onStoreChange, registerMenuCommand, sendRequest, store } from './platform';
+import { addGearButton, isSettingsOpen, openSettings, toggleSettings, type PanelOptions } from './settings/panel';
 import { injectStyle, NO_ADS_CLASS, setCustomCss } from './style';
 import { syncTheme } from './theme';
+import { Sync } from './sync';
 import { showToast } from './toast';
 
 function run(adapter: EngineAdapter): void {
@@ -62,6 +63,15 @@ function run(adapter: EngineAdapter): void {
   });
 
   const pager = new Pager(adapter);
+  const sync = new Sync({
+    settings: () => settings,
+    apply(next) {
+      update(next);
+      // Subscriptions added on another device.
+      void refreshSubscriptions();
+    },
+    busy: isSettingsOpen,
+  });
   const allRules = () => combinedRules(store, settings.rules, settings.subscriptions);
 
   /** Fetch subscriptions that are out of date (or all, when forced), then re-apply. */
@@ -82,6 +92,12 @@ function run(adapter: EngineAdapter): void {
       if (added) void refreshSubscriptions();
     },
     refreshSubscriptions: () => refreshSubscriptions(true),
+    sync: {
+      config: () => sync.config(),
+      setConfig: (config) => sync.setConfig(config),
+      status: () => sync.status(),
+      now: () => sync.now(),
+    },
     async listModels(config) {
       const { status, body } = await sendRequest(modelsRequest(config));
       if (status < 200 || status >= 300) throw new Error(errorMessage(body) ?? `HTTP ${status}`);
@@ -106,9 +122,14 @@ function run(adapter: EngineAdapter): void {
   }
 
   function update(next: Settings): void {
+    saveSettings(store, next);
+    show(next);
+    sync.changed(next);
+  }
+
+  function show(next: Settings): void {
     settings = next;
     page.grid.invalidate();
-    saveSettings(store, settings);
     applyGlobal();
     page.update(settings, allRules());
     pager.sync(settings);
@@ -129,6 +150,7 @@ function run(adapter: EngineAdapter): void {
     pager.sync(settings);
     addGearButton(adapter.searchBar(document), panel);
     void refreshSubscriptions();
+    sync.start();
     // Mutation callbacks are already batched and run before the next paint, so
     // new results never show unprocessed. requestAnimationFrame would stall in
     // background tabs. `refresh` is idempotent, so its own mutations settle.
@@ -142,6 +164,9 @@ function run(adapter: EngineAdapter): void {
       }, 100);
     });
   }
+
+  // Another tab changed the settings, or synced them: saving our stale copy would undo that.
+  onStoreChange('settings', () => show(loadSettings(store)));
 
   // Runs at document-start: hide ads before the page paints.
   injectStyle(adapter.adSelectors, LAYOUT_CSS + pagerCss(adapter.paginationSelector));

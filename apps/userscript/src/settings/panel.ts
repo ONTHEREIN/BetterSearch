@@ -1,5 +1,6 @@
 import { t, type AiConfig, type Settings, type Subscription } from '@bettersearch/core';
 import { mount, unmount } from 'svelte';
+import type { SyncConfig, SyncStatus } from '../sync';
 import SettingsPanel from './Settings.svelte';
 
 const GEAR_ICON =
@@ -19,6 +20,19 @@ export interface PanelOptions {
   /** The service's model ids; throws with the reason when it cannot list them. */
   listModels(config: AiConfig): Promise<string[]>;
   onChange(settings: Settings): void;
+  sync: SyncControls;
+}
+
+export interface SyncControls {
+  config(): SyncConfig;
+  setConfig(config: SyncConfig): void;
+  status(): SyncStatus;
+  /** Sync now; the settings may have changed when it resolves. */
+  now(): Promise<SyncStatus>;
+}
+
+export function isSettingsOpen(): boolean {
+  return !!open;
 }
 
 let open: { host: HTMLElement; app: ReturnType<typeof mount> } | null = null;
@@ -47,6 +61,8 @@ export function openSettings(options: PanelOptions): void {
       refreshSubscriptions: options.refreshSubscriptions,
       subscriptionStatus: options.subscriptionStatus,
       listModels: options.listModels,
+      sync: options.sync,
+      getSettings: options.getSettings,
     },
   });
   open = { host, app };

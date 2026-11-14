@@ -48,7 +48,7 @@ export interface Source {
 }
 
 export interface HttpRequest {
-  method: 'GET' | 'POST';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'MKCOL';
   url: string;
   headers: Record<string, string>;
   body?: string;

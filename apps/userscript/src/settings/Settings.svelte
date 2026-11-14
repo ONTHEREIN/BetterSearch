@@ -9,7 +9,7 @@
     type Settings,
     type Subscription,
   } from '@bettersearch/core';
-  import type { SubscriptionStatus } from './panel';
+  import type { SubscriptionStatus, SyncControls } from './panel';
 
   interface Props {
     settings: Settings;
@@ -18,9 +18,20 @@
     refreshSubscriptions: () => Promise<void>;
     subscriptionStatus: (sub: Subscription) => SubscriptionStatus;
     listModels: (config: AiConfig) => Promise<string[]>;
+    sync: SyncControls;
+    getSettings: () => Settings;
   }
 
-  let { settings: initial, onchange, onclose, refreshSubscriptions, subscriptionStatus, listModels }: Props = $props();
+  let {
+    settings: initial,
+    onchange,
+    onclose,
+    refreshSubscriptions,
+    subscriptionStatus,
+    listModels,
+    sync,
+    getSettings,
+  }: Props = $props();
   // The panel edits its own copy, taken once when it opens.
   // svelte-ignore state_referenced_locally
   let settings = $state({ ...initial });
@@ -127,6 +138,32 @@
     themeText = null;
     themeMessage = t('theme.imported');
     commit();
+  }
+
+  // svelte-ignore state_referenced_locally
+  let dav = $state(sync.config());
+  // svelte-ignore state_referenced_locally
+  let syncStatus = $state(sync.status());
+  let syncing = $state(false);
+  let davReady = $derived(dav.enabled && !!dav.url.trim() && !!dav.username.trim());
+
+  function saveDav() {
+    sync.setConfig({ ...dav });
+  }
+
+  async function syncNow() {
+    syncing = true;
+    syncStatus = await sync.now();
+    syncing = false;
+    // Settings from other devices: take them, or the next change would undo them.
+    settings = { ...getSettings() };
+  }
+
+  function describeSync(status: typeof syncStatus): string {
+    const when = status.at ? t('sync.last', { when: new Date(status.at).toLocaleString() }) : t('sync.never');
+    if (!status.error) return when;
+    const error = status.error === 'auth' ? t('sync.auth') : status.error;
+    return `${t('sync.failed', { error })} ${status.at ? when : ''}`.trim();
   }
 
   function onkeydown(event: KeyboardEvent) {
@@ -383,6 +420,34 @@
     </label>
     <!-- Our own constant markup, not user input. -->
     <p class="hint">{@html t('rules.hint')}</p>
+  </section>
+
+  <section>
+    <h3>{t('sync.title')}</h3>
+    <label class="row">
+      <input type="checkbox" bind:checked={dav.enabled} onchange={saveDav} />
+      <span>{t('sync.enable')}</span>
+    </label>
+    <p class="hint">{t('sync.hint')}</p>
+    {#if dav.enabled}
+      <label class="stack">
+        <span>{t('sync.url')}</span>
+        <input class="text" type="url" spellcheck="false" placeholder="https://dav.jianguoyun.com/dav/" bind:value={dav.url} onchange={saveDav} />
+      </label>
+      <label class="stack">
+        <span>{t('sync.username')}</span>
+        <input class="text" autocomplete="off" spellcheck="false" bind:value={dav.username} onchange={saveDav} />
+      </label>
+      <label class="stack">
+        <span>{t('sync.password')}</span>
+        <input class="text" type="password" autocomplete="off" bind:value={dav.password} onchange={saveDav} />
+      </label>
+      <p class="hint">{t('sync.passwordHint')}</p>
+      <div class="actions">
+        <button type="button" disabled={!davReady || syncing} onclick={syncNow}>{syncing ? t('sync.running') : t('sync.now')}</button>
+      </div>
+      <p class="hint" role="status">{describeSync(syncStatus)}</p>
+    {/if}
   </section>
 </aside>
 
