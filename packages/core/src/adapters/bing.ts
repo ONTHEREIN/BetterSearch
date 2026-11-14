@@ -115,7 +115,8 @@ export const bingAdapter: EngineAdapter = {
       if (!link || !/^https?:\/\//.test(url)) return null;
       return { title: link.textContent?.trim() ?? '', href: link.getAttribute('href') ?? '', url, host: new URL(url).hostname, prominent: false };
     }
-    const link = block.el.querySelector('h2 a');
+    // The title holds the link on desktop, and is inside it on mobile.
+    const link = block.el.querySelector('h2 a') ?? block.el.querySelector('a h2')?.closest('a');
     if (!link) return null;
     const href = link.getAttribute('href') ?? '';
     const url = /^https?:\/\//.test(href) && !/^https?:\/\/[^/]*bing\.com\//.test(href) ? href : null;

@@ -20,6 +20,8 @@ import { Grid } from './layout';
 import { PAGER } from './pager';
 import { CLASSES } from './style';
 
+const SCRIPTED_LINK = 'rl-link-href';
+
 /** The `target` a link had before we changed it, so `engine` can restore it. */
 const ORIGINAL_TARGET = 'data-bs-target';
 
@@ -219,6 +221,10 @@ export class Page {
       link.removeAttribute('ping');
       if (target && link.getAttribute('href') === info.href) link.setAttribute('href', target);
     }
+    // Mobile Baidu's cards are links through a script that reads this attribute.
+    for (const card of result.querySelectorAll(`[${SCRIPTED_LINK}]`)) {
+      if (target && card.getAttribute(SCRIPTED_LINK) === info.href) card.setAttribute(SCRIPTED_LINK, target);
+    }
   }
 
   private setLinkTargets(result: HTMLElement): void {
@@ -352,7 +358,7 @@ export class Page {
       if (!collapse || inBar) continue;
       let bar = this.aiBars.get(el);
       if (!bar?.isConnected) {
-        bar = document.createElement('div');
+        bar = document.createElement('section');
         bar.className = `${CLASSES.notice} ${CLASSES.aiBar}`;
         const text = document.createElement('span');
         text.textContent = t('ai.collapsed');
@@ -389,7 +395,7 @@ export class Page {
     const first = this.cellOf(run[0]!.el);
     let notice = this.notices.get(first);
     if (!notice?.isConnected) {
-      notice = document.createElement('div');
+      notice = document.createElement('section');
       notice.className = CLASSES.notice;
       const show = document.createElement('button');
       show.type = 'button';

@@ -127,3 +127,23 @@ describe('the news tab', () => {
     expect(googleAdapter.nextPageUrl(doc, 'https://www.google.com/search?q=x&tbm=nws')).toContain('tbm=nws');
   });
 });
+
+describe('the mobile page', () => {
+  const doc = loadFixture('mobile-huawei.html');
+  const blocks = googleAdapter.collectBlocks(doc);
+
+  it('finds results by their headings, linking straight to the site', () => {
+    const results = blocks.filter((b) => b.type === 'organic').map((b) => googleAdapter.extractResult(b));
+    expect(results.map((r) => r?.host)).toEqual([
+      'www.huawei.com',
+      'www.vmall.com',
+      'zh.wikipedia.org',
+      'www.huawei.cn',
+      'career.huawei.com',
+      'www.huaweicloud.com',
+    ]);
+    expect(results[1]).toMatchObject({ title: '华为商城VMALL', url: 'https://www.vmall.com/index.html' });
+    expect(blocks.filter((b) => b.type === 'ai-answer')).toHaveLength(1);
+    expectNotNested(blocks);
+  });
+});

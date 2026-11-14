@@ -100,3 +100,22 @@ describe('the news tab', () => {
     expect(bingAdapter.nextPageUrl(doc, 'https://www.bing.com/news/search?q=huawei')).toBeNull();
   });
 });
+
+describe('the mobile page', () => {
+  it('reads results whose link holds the title', () => {
+    const blocks = blocksOf('mobile-huawei.html');
+    expect(summaryOf('mobile-huawei.html').filter((s) => s.startsWith('organic'))).toEqual([
+      'organic:www.huawei.com',
+      'organic:consumer.huawei.com',
+      'organic:consumer.huawei.com',
+      'organic:www.vmall.com',
+      'organic:career.huawei.com',
+      'organic:zh.wikipedia.org',
+      'organic:e.huawei.com',
+      'organic:baike.baidu.com',
+    ]);
+    const first = bingAdapter.extractResult(blocks.find((b) => b.type === 'organic')!);
+    expect(first).toMatchObject({ title: '华为 - 构建万物互联的智能世界 - HUAWEI', url: 'https://www.huawei.com/cn/' });
+    expect(blocks.filter((b) => b.type === 'ad')).toHaveLength(3);
+  });
+});

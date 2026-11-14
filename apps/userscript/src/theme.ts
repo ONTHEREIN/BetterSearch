@@ -11,7 +11,10 @@ export function pageIsDark(): boolean {
     const [r, g, b] = rgb as [number, number, number];
     return 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
   }
-  return matchMedia('(prefers-color-scheme: dark)').matches;
+  // With no background anywhere the canvas is white, unless the page opts in
+  // to the dark scheme.
+  const scheme = getComputedStyle(document.documentElement).colorScheme;
+  return /dark/.test(scheme) && (!/light/.test(scheme) || matchMedia('(prefers-color-scheme: dark)').matches);
 }
 
 /** Mirror the page theme on <html> for our own styles. */

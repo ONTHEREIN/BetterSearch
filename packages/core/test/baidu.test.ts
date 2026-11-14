@@ -112,3 +112,42 @@ describe('the news tab', () => {
     expect(baiduAdapter.nextPageUrl(doc, 'https://www.baidu.com/s?wd=x')).toContain('tn=news');
   });
 });
+
+describe('the mobile page', () => {
+  const doc = loadFixture('baidu', 'mobile-huawei.html');
+  const blocks = baiduAdapter.collectBlocks(doc);
+
+  it('is a results page on m.baidu.com, whatever the path prefix', () => {
+    expect(baiduAdapter.tab(new URL('https://m.baidu.com/s?word=x'), doc)).toBe('web');
+    expect(baiduAdapter.tab(new URL('https://m.baidu.com/ssid=0/from=0/s?word=x'), doc)).toBe('web');
+    expect(baiduAdapter.query(new URL('https://m.baidu.com/s?word=%E5%8D%8E%E4%B8%BA'))).toBe('华为');
+  });
+
+  it('reads the real address from the click log, and the title without its tags', () => {
+    const results = blocks.filter((b) => b.type === 'organic').map((b) => baiduAdapter.extractResult(b));
+    expect(results[0]).toMatchObject({
+      title: '华为- 构建万物互联的智能世界',
+      url: 'https://www.huawei.com/cn/',
+      host: 'www.huawei.com',
+      prominent: true,
+    });
+    expect(results[0]!.href).toMatch(/^https:\/\/m\.baidu\.com\//);
+    expect(results.map((r) => r?.host)).toContain('www.vmall.com');
+  });
+
+  it('treats the brand zone and ads_* templates as ads', () => {
+    expect(blocks.slice(0, 4).map((b) => b.type)).toEqual(['ad', 'ad', 'ad', 'ad']);
+    expect(blocks.find((b) => b.el.getAttribute('tpl') === 'sg_kg_entity_san')?.type).toBe('knowledge');
+  });
+
+  it('finds the next page and the search box', () => {
+    expect(baiduAdapter.nextPageUrl(doc, 'https://m.baidu.com/s?word=x')).toContain('pn=10');
+    expect(baiduAdapter.searchBar(doc)?.id).toBe('se-form');
+  });
+
+  it('reads a page without ads the same way', () => {
+    const other = baiduAdapter.collectBlocks(loadFixture('baidu', 'mobile-iphone.html'));
+    expect(other.filter((b) => b.type === 'organic')).toHaveLength(7);
+    expect(other.filter((b) => b.type === 'ad')).toEqual([]);
+  });
+});

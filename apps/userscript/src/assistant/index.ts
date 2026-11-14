@@ -70,7 +70,7 @@ export class Assistant {
   private create(query: string): void {
     const s = this.options.settings();
     const config = { baseUrl: s.aiBaseUrl, apiKey: s.aiApiKey, model: s.aiModel };
-    this.host = document.createElement('div');
+    this.host = document.createElement('section');
     this.host.className = 'bs-assistant';
     const shadow = this.host.attachShadow({ mode: 'open' });
     this.app = mount(AssistantBar, {

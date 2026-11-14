@@ -73,9 +73,12 @@ export function toggleSettings(options: PanelOptions): void {
   else openSettings(options);
 }
 
+/** Space the gear takes right of the search bar. */
+const GEAR_ROOM = 52;
+
 /** Put a gear button right of the engine's search bar, if one can be found. */
 export function addGearButton(bar: HTMLElement | null, options: PanelOptions): void {
-  if (!bar || bar.querySelector('.bs-gear')) return;
+  if (!bar || document.querySelector('.bs-gear')) return;
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'bs-gear';
@@ -100,6 +103,23 @@ export function addGearButton(bar: HTMLElement | null, options: PanelOptions): v
     justifyContent: 'center',
   });
   button.addEventListener('click', () => toggleSettings(options));
+  // On a phone the search bar fills the width: float in the corner instead.
+  if (bar.getBoundingClientRect().right + GEAR_ROOM > document.documentElement.clientWidth) {
+    Object.assign(button.style, {
+      position: 'fixed',
+      top: 'auto',
+      right: '16px',
+      bottom: 'calc(16px + env(safe-area-inset-bottom))',
+      transform: 'none',
+      width: '44px',
+      height: '44px',
+      zIndex: '2147483645',
+      background: 'var(--bs-gear-bg)',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, .2)',
+    });
+    document.body.append(button);
+    return;
+  }
   if (getComputedStyle(bar).position === 'static') bar.style.position = 'relative';
   bar.append(button);
 }

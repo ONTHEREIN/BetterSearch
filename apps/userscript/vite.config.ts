@@ -34,6 +34,8 @@ export default defineConfig({
           // Baidu's home page turns into a results page without reloading.
           'https://www.baidu.com/',
           'https://www.baidu.com/s*',
+          'https://m.baidu.com/s*',
+          'https://m.baidu.com/*/s*',
         ],
         'run-at': 'document-start',
         // Subscriptions can live on any host; the manager asks once per host.

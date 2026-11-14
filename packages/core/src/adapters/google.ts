@@ -19,6 +19,8 @@ const MODULES: [BlockType, string][] = [
   ['knowledge', '[data-attrid^="kc:"]'],
   ['widget', '[data-attrid="Converter"], #wob_wc'],
 ];
+/** A result's title inside its link: h3 on desktop, a level-3 heading on mobile. */
+const TITLE = 'a h3, a [role="heading"][aria-level="3"]';
 /** A story on the news tab; one unit holds several. */
 const NEWS_ITEM = '[data-news-doc-id]';
 /** A unit with at least this many videos is a video carousel. */
@@ -63,8 +65,9 @@ function collectMain(scope: Element): Block[] {
   const blocks: Block[] = [...modules].map(([el, type]) => ({ el, type }));
 
   const organic = new Set<HTMLElement>();
-  for (const title of scope.querySelectorAll('a h3')) {
-    if (inModule(title)) continue;
+  for (const title of scope.querySelectorAll(TITLE)) {
+    // News stories are found below, as a whole.
+    if (inModule(title) || title.closest(NEWS_ITEM)) continue;
     const el = resultContainer(title, scope);
     if (el && !organic.has(el)) {
       organic.add(el);
@@ -165,16 +168,18 @@ export const googleAdapter: EngineAdapter = {
       if (!link || !title) return null;
       return { title: title.textContent?.trim() ?? '', href: link.getAttribute('href') ?? '', url: null, host: null, prominent: false };
     }
-    const title = block.el.querySelector('a h3');
+    const title = block.el.querySelector(TITLE);
     const link = title?.closest('a');
     if (!title || !link) return null;
     const href = link.getAttribute('href') ?? '';
+    // Results usually link through an opaque /goto redirect; on mobile, straight to the site.
+    const url = /^https?:\/\//.test(href) ? href : null;
     return {
       title: title.textContent?.trim() ?? '',
       href,
-      // Results usually link through an opaque /goto redirect.
-      url: /^https?:\/\//.test(href) ? href : null,
-      host: hostFromDisplayUrl(block.el.querySelector('cite')?.textContent),
+      url,
+      // Mobile results show no <cite>.
+      host: hostFromDisplayUrl(block.el.querySelector('cite')?.textContent) ?? (url ? new URL(url).hostname : null),
       prominent: block.el.querySelectorAll('table a, [role="list"] a').length >= 3,
     };
   },

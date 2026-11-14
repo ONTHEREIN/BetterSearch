@@ -82,7 +82,8 @@ export class Pager {
 
     this.nextUrl = this.adapter.nextPageUrl(document, location.href);
     for (const key of this.resultKeys(document)) this.seen.add(key);
-    this.footer = document.createElement('div');
+    // Not a div: mobile Baidu hides every classed div among its results but its own.
+    this.footer = document.createElement('section');
     this.footer.className = PAGER.footer;
     container.append(this.footer);
     this.observer = new IntersectionObserver((entries) => {
@@ -130,7 +131,7 @@ export class Pager {
       }
 
       this.loaded += 1;
-      const divider = document.createElement('div');
+      const divider = document.createElement('section');
       divider.className = PAGER.divider;
       divider.textContent = t('pager.divider', { page: this.loaded + 1 });
       const fresh: HTMLElement[] = [];

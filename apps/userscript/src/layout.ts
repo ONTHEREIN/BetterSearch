@@ -24,6 +24,8 @@ const MEASURED: ReadonlySet<string> = new Set([GRID.wide, GRID.wideParent, GRID.
 const SIDE_WIDTH = 300;
 const SIDE_GAP = 32;
 const RIGHT_PADDING = 24;
+/** Narrower viewports keep the engine's own layout. */
+const PHONE_WIDTH = 600;
 
 /** Looked up on use: at document-start the script can run before <html> exists. */
 const root = () => document.documentElement;
@@ -72,7 +74,10 @@ export class Grid {
     organic: ReadonlySet<HTMLElement>,
     settings: Settings,
   ): void {
-    if (!container || !plan || !settings.layout) {
+    // A phone has room for one column, and the engine's mobile page already
+    // lays that out; widening and centring it would only push it off screen.
+    const phone = document.documentElement.clientWidth < PHONE_WIDTH;
+    if (!container || !plan || !settings.layout || phone) {
       this.clear();
       return;
     }

@@ -29,6 +29,8 @@ const adCss = (adSelectors: readonly string[]) =>
   [...adSelectors, `.${C.ad}`].map((s) => `html.${NO_ADS_CLASS} ${s} { display: none !important; }\n`).join('');
 
 const CSS = `
+html { --bs-gear-bg: #ffffff; }
+html[data-bs-theme='dark'] { --bs-gear-bg: #2a2f3a; }
 .${C.result} { position: relative; }
 .${C.blocked}, .${C.aiCollapsed} { display: none !important; }
 
@@ -48,6 +50,15 @@ const CSS = `
 .${C.blockButton}.${C.summaryButton} { right: 64px; }
 .${C.result}:not(:has(> .${C.reportButton})) > .${C.summaryButton} { right: 32px; }
 .${C.blockButton}[hidden] { display: none; }
+/* Fingers need bigger targets. */
+@media (pointer: coarse) {
+  .${C.blockButton} { width: 40px; height: 40px; }
+  .${C.blockButton}.${C.reportButton} { right: 40px; }
+  .${C.blockButton}.${C.summaryButton} { right: 80px; }
+  .${C.result}:not(:has(> .${C.reportButton})) > .${C.summaryButton} { right: 40px; }
+  /* Mobile Baidu puts the title at the very top, under the buttons. */
+  html[data-bs-engine='baidu'] .${C.result} h3 { padding-right: 112px; }
+}
 
 .${C.assistant} { display: block; margin: 0 0 var(--bs-gap, 16px); }
 .${C.reportLink} {

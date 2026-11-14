@@ -9,7 +9,9 @@
 1. 安装脚本管理器：[Tampermonkey](https://www.tampermonkey.net/)（Chrome、Edge、Firefox、Safari）或 [Violentmonkey](https://violentmonkey.github.io/)。Safari 也可以用 [Userscripts](https://github.com/quoid/userscripts)。
 2. 发布前：从 [CI 的构建产物](https://github.com/ONTHEREIN/BetterSearch/actions/workflows/ci.yml) 下载 `bettersearch.user.js`，拖进脚本管理器安装；或者按下面的「开发」自己构建。
 
-在搜索结果页点搜索框旁边的齿轮，或按 `Alt+,` 打开设置。
+在搜索结果页点搜索框旁边的齿轮，或按 `Alt+,` 打开设置。手机上齿轮在屏幕右下角。
+
+手机浏览器（Via、X 浏览器、Kiwi + Tampermonkey、iOS 的 Userscripts 等）打开的是引擎的手机版页面，脚本同样支持：Google、Bing 的手机版和百度的 `m.baidu.com`。手机上保持引擎自己的单列排版，不用多列卡片。
 
 脚本在「全部 / 网页」和「新闻 / 资讯」两个 tab 上生效。Bing 的资讯 tab 只有国际版（www.bing.com）有。百度资讯页打开后，地址栏里的 `tn=news` 会被百度去掉，这时刷新会回到网页 tab。新闻报道不是网站自己的页面，所以资讯 tab 上不做官网核对和仿冒提示；Google 新闻不显示网址，也就不能按域名屏蔽。
 
