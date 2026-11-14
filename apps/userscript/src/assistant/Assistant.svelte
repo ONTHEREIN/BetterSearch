@@ -12,6 +12,7 @@
     type Source,
   } from '@bettersearch/core';
   import type { Streaming } from '../platform';
+  import type { EngineAnswer } from './index';
 
   interface Props {
     query: string;
@@ -40,6 +41,8 @@
   let running: Streaming | null = null;
   let busy = $state(false);
   let question = $state('');
+  let engine = $state<EngineAnswer>('none');
+  let toggleEngine = () => {};
   /** Less text than this is a login wall, an app shell or an error page. */
   const MIN_PAGE_TEXT = 200;
 
@@ -116,6 +119,12 @@
     await run(turn);
   }
 
+  /** Called on every page pass, so assign only what changed. */
+  export function engineAnswer(state: EngineAnswer, toggle: () => void): void {
+    if (engine !== state) engine = state;
+    toggleEngine = toggle;
+  }
+
   function ask(event: SubmitEvent): void {
     event.preventDefault();
     const text = question.trim();
@@ -149,6 +158,11 @@
     {:else if turns.length}
       <button type="button" class="link" onclick={summarizeSearch}>{t('assistant.again')}</button>
       <button type="button" class="link" onclick={clear}>{t('assistant.clear')}</button>
+    {/if}
+    {#if engine !== 'none'}
+      <button type="button" class="link" aria-expanded={engine === 'expanded'} onclick={() => toggleEngine()}
+        >{t(engine === 'expanded' ? 'assistant.engineHide' : 'assistant.engineShow')}</button
+      >
     {/if}
     <button type="button" class="link" onclick={openSettings}>{t('assistant.settings')}</button>
   </div>

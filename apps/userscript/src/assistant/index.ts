@@ -10,7 +10,13 @@ export interface AssistantOptions {
   openSettings(): void;
 }
 
-type App = { summarizePage(source: Source): Promise<void> };
+/** The engine's own AI answer: none on the page, or hidden or shown from the bar. */
+export type EngineAnswer = 'none' | 'collapsed' | 'expanded';
+
+type App = {
+  summarizePage(source: Source): Promise<void>;
+  engineAnswer(state: EngineAnswer, toggle: () => void): void;
+};
 
 /**
  * The AI bar: a full-width row at the top of the results. Nothing is sent
@@ -44,6 +50,15 @@ export class Assistant {
     if (container.firstElementChild !== this.host) container.prepend(this.host!);
     const theme = document.documentElement.dataset.bsTheme ?? 'light';
     if (this.host!.dataset.theme !== theme) this.host!.dataset.theme = theme;
+  }
+
+  /** True while the bar is on the page. */
+  shown(): boolean {
+    return !!this.host;
+  }
+
+  engineAnswer(state: EngineAnswer, toggle: () => void): void {
+    this.app?.engineAnswer(state, toggle);
   }
 
   summarizePage(source: Source): void {

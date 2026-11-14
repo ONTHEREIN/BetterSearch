@@ -122,8 +122,8 @@ export class Page {
     this.cellOf = (el) => plan?.cells.get(el) ?? el;
     const columns = { side: this.adapter.sideColumn(document), left: this.adapter.leftColumn(document) };
     this.grid.apply(container, columns, plan, new Set(results.keys()), this.settings);
-    this.collapseAiAnswers(blocks.filter((b) => b.type === 'ai-answer').map((b) => b.el));
     this.hooks.assistant.sync(container, query);
+    this.collapseAiAnswers(blocks.filter((b) => b.type === 'ai-answer').map((b) => b.el));
 
     // Runs of blocked results with nothing visible between them share a notice.
     // Ads do not break a run: they are hidden too.
@@ -333,13 +333,23 @@ export class Page {
     return box;
   }
 
+  /**
+   * With the AI bar on the page, the engine's answer is opened and closed from
+   * there; otherwise a line of its own stands in for it.
+   */
   private collapseAiAnswers(answers: HTMLElement[]): void {
+    const assistant = this.hooks.assistant;
+    const inBar = assistant.shown() && this.settings.collapseAiAnswers && answers.length > 0;
+    assistant.engineAnswer(
+      inBar ? (answers.every((el) => this.aiExpanded.has(el)) ? 'expanded' : 'collapsed') : 'none',
+      () => this.toggleAiAnswers(answers),
+    );
     const active = new Set<HTMLElement>();
     for (const el of answers) {
       const cell = this.cellOf(el);
       const collapse = this.settings.collapseAiAnswers && !this.aiExpanded.has(el);
       cell.classList.toggle(CLASSES.aiCollapsed, collapse);
-      if (!collapse) continue;
+      if (!collapse || inBar) continue;
       let bar = this.aiBars.get(el);
       if (!bar?.isConnected) {
         bar = document.createElement('div');
@@ -363,6 +373,16 @@ export class Page {
     for (const bar of document.querySelectorAll<HTMLElement>(`.${CLASSES.aiBar}`)) {
       if (!active.has(bar)) bar.hidden = true;
     }
+  }
+
+  private toggleAiAnswers(answers: HTMLElement[]): void {
+    const expand = answers.some((el) => !this.aiExpanded.has(el));
+    for (const el of answers) {
+      if (expand) this.aiExpanded.add(el);
+      else this.aiExpanded.delete(el);
+    }
+    this.apply();
+    if (expand) this.cellOf(answers[0]!).scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   private showNotice(run: Result[]): HTMLElement {
