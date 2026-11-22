@@ -2,12 +2,12 @@
 
 一个增强 Google、Bing、百度搜索结果页的油猴脚本：去广告、屏蔽站点、防范仿冒官网、拦截重定向、自动翻页，以及可自定义的双列布局。
 
-> 开发中，尚未发布到 Greasy Fork。设计见 [docs/DESIGN.md](docs/DESIGN.md)。
+> 设计与实现细节见 [docs/DESIGN.md](docs/DESIGN.md)。
 
 ## 安装
 
 1. 安装脚本管理器：[Tampermonkey](https://www.tampermonkey.net/)（Chrome、Edge、Firefox、Safari）或 [Violentmonkey](https://violentmonkey.github.io/)。Safari 也可以用 [Userscripts](https://github.com/quoid/userscripts)。
-2. 发布前：从 [CI 的构建产物](https://github.com/ONTHEREIN/BetterSearch/actions/workflows/ci.yml) 下载 `bettersearch.user.js`，拖进脚本管理器安装；或者按下面的「开发」自己构建。
+2. 从 [GitHub Releases](https://github.com/ONTHEREIN/BetterSearch/releases/latest) 下载 `bettersearch.user.js` 并拖进脚本管理器安装（也可从 [CI 的构建产物](https://github.com/ONTHEREIN/BetterSearch/actions/workflows/ci.yml) 获取开发版，或按下面的「开发」自己构建）。
 
 在搜索结果页点搜索框旁边的齿轮，或按 `Alt+,` 打开设置。手机上齿轮在屏幕右下角。
 
